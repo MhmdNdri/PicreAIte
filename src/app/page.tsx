@@ -40,41 +40,13 @@ export default function Home() {
         </p>
 
         <div className="mt-8 flex animate-fade-up gap-4">
-          <button className="group inline-flex items-center gap-2 rounded-full bg-primary px-6 py-3 text-lg font-semibold text-primary-foreground transition-all hover:bg-primary/90">
+          <button className="group inline-flex items-center gap-2 rounded-full bg-primary px-6 py-3 text-lg font-semibold text-primary-foreground transition-all duration-300 hover:bg-primary/90 dark:text-secondary shadow-lg hover:shadow-xl hover:-translate-y-0.5 active:translate-y-0">
             Get Started
             <ArrowRight className="transition-transform group-hover:translate-x-1" />
           </button>
-          <button className="inline-flex items-center gap-2 rounded-full border border-input bg-background px-6 py-3 text-lg font-semibold transition-all hover:bg-accent hover:text-accent-foreground">
+          <button className="inline-flex items-center gap-2 rounded-full border border-input bg-background px-6 py-3 text-lg font-semibold transition-all duration-300 hover:bg-accent hover:text-accent-foreground shadow-md hover:shadow-lg hover:-translate-y-0.5 active:translate-y-0">
             Learn More
           </button>
-        </div>
-
-        {/* Stats Section */}
-        <div className="mt-16 grid w-full max-w-4xl animate-fade-up grid-cols-2 gap-8 rounded-2xl border bg-card/50 p-8 backdrop-blur-sm md:grid-cols-4">
-          <div className="text-center">
-            <div className="text-3xl font-bold text-primary">10K+</div>
-            <div className="mt-2 text-sm text-muted-foreground">
-              Images Transformed
-            </div>
-          </div>
-          <div className="text-center">
-            <div className="text-3xl font-bold text-primary">50+</div>
-            <div className="mt-2 text-sm text-muted-foreground">
-              Visual Styles
-            </div>
-          </div>
-          <div className="text-center">
-            <div className="text-3xl font-bold text-primary">98%</div>
-            <div className="mt-2 text-sm text-muted-foreground">
-              Satisfaction Rate
-            </div>
-          </div>
-          <div className="text-center">
-            <div className="text-3xl font-bold text-primary">24/7</div>
-            <div className="mt-2 text-sm text-muted-foreground">
-              AI Processing
-            </div>
-          </div>
         </div>
       </section>
     </main>
