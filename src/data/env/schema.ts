@@ -10,14 +10,15 @@ export const env = createEnv({
     DATABASE_SSL: z.boolean().default(false),
   },
   client: {
-    // Client-side environment variables go here
+    NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY: z.string().min(1),
+    NEXT_PUBLIC_CLERK_SIGN_IN_URL: z.string().min(1),
+    NEXT_PUBLIC_CLERK_SIGN_OUT_URL: z.string().min(1),
   },
-  runtimeEnv: {
-    DATABASE_HOST: process.env.DATABASE_HOST,
-    DATABASE_USER: process.env.DATABASE_USER,
-    DATABASE_PASSWORD: process.env.DATABASE_PASSWORD,
-    DATABASE_NAME: process.env.DATABASE_NAME,
-    DATABASE_SSL: process.env.DATABASE_SSL === "true",
+  experimental__runtimeEnv: {
+    NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY:
+      process.env.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY,
+    NEXT_PUBLIC_CLERK_SIGN_IN_URL: process.env.NEXT_PUBLIC_CLERK_SIGN_IN_URL,
+    NEXT_PUBLIC_CLERK_SIGN_OUT_URL: process.env.NEXT_PUBLIC_CLERK_SIGN_OUT_URL,
   },
   skipValidation: !!process.env.SKIP_ENV_VALIDATION,
 });
