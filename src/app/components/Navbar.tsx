@@ -4,11 +4,13 @@ import { useState, useEffect } from "react";
 import { useTheme } from "next-themes";
 import { Menu, X, Sun, Moon } from "lucide-react";
 import Link from "next/link";
+import { UserButton, SignInButton, useUser } from "@clerk/nextjs";
 
 export function Navbar() {
   const [mounted, setMounted] = useState(false);
   const [isOpen, setIsOpen] = useState(false);
   const { theme, setTheme } = useTheme();
+  const { isSignedIn } = useUser();
 
   useEffect(() => {
     setMounted(true);
@@ -59,6 +61,22 @@ export function Navbar() {
             >
               Contact
             </Link>
+            {!isSignedIn ? (
+              <SignInButton mode="modal">
+                <button className="px-3 py-1.5 rounded-lg bg-gradient-to-b from-gray-100 to-gray-200 dark:from-gray-800 dark:to-gray-900 text-gray-800 dark:text-gray-100 font-medium text-sm hover:from-gray-200 hover:to-gray-100 dark:hover:from-gray-900 dark:hover:to-gray-800 transition-all duration-300 transform hover:-translate-y-0.5 active:translate-y-0 shadow-[0_4px_0_0_rgba(0,0,0,0.1),0_2px_4px_rgba(0,0,0,0.1)] dark:shadow-[0_4px_0_0_rgba(255,255,255,0.1),0_2px_4px_rgba(0,0,0,0.2)] hover:shadow-[0_6px_0_0_rgba(0,0,0,0.1),0_4px_8px_rgba(0,0,0,0.1)] dark:hover:shadow-[0_6px_0_0_rgba(255,255,255,0.1),0_4px_8px_rgba(0,0,0,0.3)] border border-gray-200 dark:border-gray-700">
+                  Sign In
+                </button>
+              </SignInButton>
+            ) : (
+              <UserButton
+                afterSignOutUrl="/"
+                appearance={{
+                  elements: {
+                    avatarBox: "w-10 h-10",
+                  },
+                }}
+              />
+            )}
             <button
               onClick={() => setTheme(theme === "dark" ? "light" : "dark")}
               className="p-2 rounded-lg bg-gray-200 dark:bg-gray-800 hover:bg-gray-300 dark:hover:bg-gray-700 transition-all duration-300 transform hover:scale-110 hover:rotate-3 shadow-md hover:shadow-lg"
@@ -79,6 +97,24 @@ export function Navbar() {
 
           {/* Mobile menu button */}
           <div className="md:hidden flex items-center">
+            {!isSignedIn ? (
+              <SignInButton mode="modal">
+                <button className="px-3 py-1.5 rounded-lg bg-gradient-to-b from-gray-100 to-gray-200 dark:from-gray-800 dark:to-gray-900 text-gray-800 dark:text-gray-100 font-medium text-sm hover:from-gray-200 hover:to-gray-100 dark:hover:from-gray-900 dark:hover:to-gray-800 transition-all duration-300 transform hover:-translate-y-0.5 active:translate-y-0 shadow-[0_4px_0_0_rgba(0,0,0,0.1),0_2px_4px_rgba(0,0,0,0.1)] dark:shadow-[0_4px_0_0_rgba(255,255,255,0.1),0_2px_4px_rgba(0,0,0,0.2)] hover:shadow-[0_6px_0_0_rgba(0,0,0,0.1),0_4px_8px_rgba(0,0,0,0.1)] dark:hover:shadow-[0_6px_0_0_rgba(255,255,255,0.1),0_4px_8px_rgba(0,0,0,0.3)] border border-gray-200 dark:border-gray-700 mr-4">
+                  Sign In
+                </button>
+              </SignInButton>
+            ) : (
+              <div className="mr-4">
+                <UserButton
+                  afterSignOutUrl="/"
+                  appearance={{
+                    elements: {
+                      avatarBox: "w-10 h-10",
+                    },
+                  }}
+                />
+              </div>
+            )}
             <button
               onClick={() => setTheme(theme === "dark" ? "light" : "dark")}
               className="p-2 rounded-lg bg-gray-200 dark:bg-gray-800 hover:bg-gray-300 dark:hover:bg-gray-700 transition-all duration-300 transform hover:scale-110 hover:rotate-3 shadow-md hover:shadow-lg mr-4"
@@ -144,6 +180,24 @@ export function Navbar() {
           >
             Contact
           </Link>
+          {!isSignedIn ? (
+            <SignInButton mode="modal">
+              <button className="w-full text-left px-3 py-1.5 rounded-lg bg-gradient-to-b from-gray-100 to-gray-200 dark:from-gray-800 dark:to-gray-900 text-gray-800 dark:text-gray-100 font-medium text-sm hover:from-gray-200 hover:to-gray-100 dark:hover:from-gray-900 dark:hover:to-gray-800 transition-all duration-300 transform hover:-translate-y-0.5 active:translate-y-0 shadow-[0_4px_0_0_rgba(0,0,0,0.1),0_2px_4px_rgba(0,0,0,0.1)] dark:shadow-[0_4px_0_0_rgba(255,255,255,0.1),0_2px_4px_rgba(0,0,0,0.2)] hover:shadow-[0_6px_0_0_rgba(0,0,0,0.1),0_4px_8px_rgba(0,0,0,0.1)] dark:hover:shadow-[0_6px_0_0_rgba(255,255,255,0.1),0_4px_8px_rgba(0,0,0,0.3)] border border-gray-200 dark:border-gray-700">
+                Sign In
+              </button>
+            </SignInButton>
+          ) : (
+            <div className="px-3 py-2">
+              <UserButton
+                afterSignOutUrl="/"
+                appearance={{
+                  elements: {
+                    avatarBox: "w-10 h-10",
+                  },
+                }}
+              />
+            </div>
+          )}
         </div>
       </div>
     </nav>
