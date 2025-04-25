@@ -54,22 +54,37 @@ export async function POST(req: Request) {
           imageUrl: event.data.image_url,
         });
 
-        await syncClerkUserMetadata(user);
+        if (user && user.id) {
+          await syncClerkUserMetadata({
+            id: user.id,
+            clerkUserId: user.clerkUserId,
+          });
+        }
       } else {
-        await updateUser(
-          { clerkUserId: event.data.id },
-          {
-            email,
-            name,
-            imageUrl: event.data.image_url,
-          }
-        );
+        try {
+          await updateUser(
+            { clerkUserId: event.data.id },
+            {
+              email,
+              name,
+              imageUrl: event.data.image_url,
+            }
+          );
+        } catch (error) {
+          console.error("Error updating user:", error);
+          return new Response("Failed to update user", { status: 500 });
+        }
       }
       break;
     }
     case "user.deleted": {
       if (event.data.id != null) {
-        await deleteUser({ clerkUserId: event.data.id });
+        try {
+          await deleteUser({ clerkUserId: event.data.id });
+        } catch (error) {
+          console.error("Error deleting user:", error);
+          return new Response("Failed to delete user", { status: 500 });
+        }
       }
       break;
     }

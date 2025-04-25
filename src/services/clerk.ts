@@ -1,10 +1,10 @@
 import { clerkClient } from "@clerk/nextjs/server";
 
-const client = await clerkClient();
-export function syncClerkUserMetadata(user: {
+export async function syncClerkUserMetadata(user: {
   id: string;
   clerkUserId: string;
 }) {
+  const client = await clerkClient();
   return client.users.updateUserMetadata(user.clerkUserId, {
     publicMetadata: {
       dbId: user.id,
