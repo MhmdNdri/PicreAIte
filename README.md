@@ -1,22 +1,76 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Picreaite
+
+A Next.js application with Drizzle ORM and PostgreSQL.
 
 ## Getting Started
 
-First, run the development server:
+### Prerequisites
 
-```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
-```
+- Node.js 18 or higher
+- PNPM 8 or higher
+- PostgreSQL database
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+### Installation
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+1. Clone the repository
+2. Install dependencies:
+
+   ```bash
+   pnpm install
+   ```
+
+3. Set up environment variables:
+
+   - Copy `.env.example` to `.env`
+   - Update the database configuration in `.env`
+
+4. Generate database migrations:
+
+   ```bash
+   pnpm db:generate
+   ```
+
+5. Push migrations to the database:
+
+   ```bash
+   pnpm db:push
+   ```
+
+6. Start the development server:
+   ```bash
+   pnpm dev
+   ```
+
+## Database Structure
+
+The database is structured as follows:
+
+- `src/drizzle/schema.ts`: Database schema definitions
+- `src/drizzle/schemaHelper.ts`: Helper functions and type definitions
+- `src/drizzle/db.ts`: Database connection configuration
+- `src/drizzle/migrations/`: Generated migration files
+
+## Environment Variables
+
+The application uses the following environment variables:
+
+- `DATABASE_HOST`: PostgreSQL host
+- `DATABASE_PORT`: PostgreSQL port
+- `DATABASE_USER`: PostgreSQL user
+- `DATABASE_PASSWORD`: PostgreSQL password
+- `DATABASE_NAME`: PostgreSQL database name
+- `DATABASE_SSL`: Whether to use SSL for database connection
+
+## Available Scripts
+
+- `pnpm dev`: Start the development server
+- `pnpm build`: Build the application
+- `pnpm start`: Start the production server
+- `pnpm lint`: Run ESLint
+- `pnpm format`: Format code with Prettier
+- `pnpm db:generate`: Generate database migrations
+- `pnpm db:push`: Push migrations to the database
+- `pnpm db:studio`: Open Drizzle Studio
 
 This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
 
