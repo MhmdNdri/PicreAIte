@@ -3,12 +3,9 @@ import { z } from "zod";
 
 export const env = createEnv({
   server: {
-    DATABASE_HOST: z.string().min(1),
-    DATABASE_USER: z.string().min(1),
-    DATABASE_PASSWORD: z.string().min(1),
-    DATABASE_NAME: z.string().min(1),
-    DATABASE_SSL: z.boolean().default(false),
+    DATABASE_URL: z.string().min(1),
     CLERK_WEBHOOK_SECRET: z.string().min(1),
+    CLERK_SECRET_KEY: z.string().min(1),
   },
   client: {
     NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY: z.string().min(1),

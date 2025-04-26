@@ -11,6 +11,8 @@
 
 # next.js
 /.next/
+.cursor
+/.cursor/
 /out/
 
 # production
@@ -29,6 +31,7 @@ pnpm-debug.log*
 # env files (can opt-in for committing if needed)
 .env*.local
 .env
+.env copy
 .env.development
 .env.production
 
@@ -38,3 +41,5 @@ pnpm-debug.log*
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+
+.cursor
