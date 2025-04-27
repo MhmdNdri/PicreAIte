@@ -24,18 +24,7 @@ export function Navbar() {
   return (
     <nav className="fixed w-full z-50 transition-all duration-300">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-2">
-        <div
-          className={`flex items-center justify-between h-16 bg-white/80 dark:bg-[#1A1E33]/80 backdrop-blur-md rounded-2xl px-6 shadow-lg border border-gray-200/10 dark:border-gray-700/10 ${
-            isHomePage ? "animate-navbar-expand" : ""
-          }`}
-          style={{
-            animation: isHomePage
-              ? "navbarExpand 1s ease-out forwards"
-              : "none",
-            transformOrigin: "center",
-            opacity: isHomePage ? 0 : 1,
-          }}
-        >
+        <div className="flex items-center justify-between h-16 bg-white/80 dark:bg-[#1A1E33]/80 backdrop-blur-md rounded-2xl px-6 shadow-lg border border-gray-200/10 dark:border-gray-700/10">
           <div className="flex items-center">
             <Link
               href="/"

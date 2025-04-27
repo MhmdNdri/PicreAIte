@@ -12,8 +12,6 @@ export default function PageTransition({ children }: PageTransitionProps) {
   const router = useRouter();
 
   useEffect(() => {
-    if (!document.startViewTransition) return;
-
     const handleClick = (e: MouseEvent) => {
       const target = e.target as HTMLElement;
       const anchor = target.closest("a");
@@ -24,24 +22,12 @@ export default function PageTransition({ children }: PageTransitionProps) {
       if (!href || href.startsWith("http")) return;
 
       e.preventDefault();
-
-      document.startViewTransition(() => {
-        router.push(href);
-      });
+      router.push(href);
     };
 
     document.addEventListener("click", handleClick);
     return () => document.removeEventListener("click", handleClick);
   }, [router]);
 
-  return (
-    <div
-      style={{
-        viewTransitionName: "page-transition",
-      }}
-      className="min-h-screen"
-    >
-      {children}
-    </div>
-  );
+  return <div className="min-h-screen">{children}</div>;
 }
