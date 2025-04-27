@@ -43,7 +43,7 @@ export default async function PlaygroundPage() {
             </p>
           </div>
         ) : (
-          <div className="grid grid-cols-2 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 sm:gap-6">
+          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 sm:gap-6">
             {prompts.map((prompt) => (
               <PromptCard
                 key={prompt.id}

@@ -6,14 +6,13 @@ import { eq, isNull } from "drizzle-orm";
 import Link from "next/link";
 import { ArrowLeft, Upload } from "lucide-react";
 
-interface PageProps {
-  params: {
-    name: string;
-  };
-}
-
-export default async function PromptPage({ params }: PageProps) {
+export default async function PromptPage({
+  params,
+}: {
+  params: Promise<{ name: string }>;
+}) {
   const { userId } = await auth();
+  const resolvedParams = await params;
 
   if (!userId) {
     redirect("/sign-in");
@@ -22,7 +21,9 @@ export default async function PromptPage({ params }: PageProps) {
   const prompt = await db
     .select()
     .from(PromptTable)
-    .where(eq(PromptTable.name, params.name) && isNull(PromptTable.deletedAt))
+    .where(
+      eq(PromptTable.name, resolvedParams.name) && isNull(PromptTable.deletedAt)
+    )
     .then((prompts: (typeof PromptTable.$inferSelect)[]) => prompts[0]);
 
   if (!prompt) {
