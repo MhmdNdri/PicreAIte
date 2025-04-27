@@ -4,6 +4,7 @@ import "./globals.css";
 import { Providers } from "./providers";
 import { Navbar } from "./components/Navbar";
 import { AuthProvider } from "@/lib/auth-context";
+import PageTransition from "@/components/PageTransition";
 
 const inter = Inter({ subsets: ["latin"] });
 
@@ -23,7 +24,9 @@ export default function RootLayout({
         <Providers>
           <AuthProvider>
             <Navbar />
-            <main className="pt-16">{children}</main>
+            <main className="pt-16 transition-all duration-300">
+              <PageTransition>{children}</PageTransition>
+            </main>
           </AuthProvider>
         </Providers>
       </body>
