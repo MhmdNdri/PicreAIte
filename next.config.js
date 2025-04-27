@@ -4,6 +4,9 @@ const nextConfig = {
   experimental: {
     authInterrupts: true,
   },
+  images: {
+    domains: ["i.ibb.co"],
+  },
 };
 
 module.exports = nextConfig;

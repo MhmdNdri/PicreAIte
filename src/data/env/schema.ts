@@ -6,9 +6,9 @@ export const env = createEnv({
     DATABASE_URL: z.string().min(1),
     CLERK_WEBHOOK_SECRET: z.string().min(1),
     CLERK_SECRET_KEY: z.string().min(1),
-    OPENAI_API_KEY: z.string().min(1),
-    GROK_API_KEY: z.string().min(1),
-    GEMINI_API_KEY: z.string().min(1),
+    OPENAI_API_KEY: z.string().min(1).optional(),
+    GROK_API_KEY: z.string().min(1).optional(),
+    GEMINI_API_KEY: z.string().min(1).optional(),
   },
   client: {
     NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY: z.string().min(1),
