@@ -8,8 +8,12 @@ import {
   Users,
   Star,
 } from "lucide-react";
+import { auth } from "@clerk/nextjs/server";
+import Link from "next/link";
 
-export default function Home() {
+export default async function Home() {
+  const { userId } = await auth();
+
   return (
     <main className="min-h-screen bg-gradient-to-b from-background to-muted">
       {/* Hero Section */}
@@ -40,10 +44,13 @@ export default function Home() {
         </p>
 
         <div className="mt-8 flex animate-fade-up gap-4">
-          <button className="group inline-flex items-center gap-2 rounded-full bg-primary px-6 py-3 text-lg font-semibold text-primary-foreground transition-all duration-300 hover:bg-primary/90 dark:text-secondary shadow-lg hover:shadow-xl hover:-translate-y-0.5 active:translate-y-0">
+          <Link
+            href={userId ? "/playground" : "/sign-in"}
+            className="group inline-flex items-center gap-2 rounded-full bg-primary px-6 py-3 text-lg font-semibold text-primary-foreground transition-all duration-300 hover:bg-primary/90 dark:text-secondary shadow-lg hover:shadow-xl hover:-translate-y-0.5 active:translate-y-0"
+          >
             Get Started
             <ArrowRight className="transition-transform group-hover:translate-x-1" />
-          </button>
+          </Link>
           <button className="inline-flex items-center gap-2 rounded-full border border-input bg-background px-6 py-3 text-lg font-semibold transition-all duration-300 hover:bg-accent hover:text-accent-foreground shadow-md hover:shadow-lg hover:-translate-y-0.5 active:translate-y-0">
             Learn More
           </button>

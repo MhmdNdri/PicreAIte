@@ -89,3 +89,9 @@
     font-feature-settings: "rlig" 1, "calt" 1;
   }
 }
+
+/* Clerk overrides */
+.cl-internal-4x6jej {
+  background: transparent !important;
+  background-image: none !important;
+}
