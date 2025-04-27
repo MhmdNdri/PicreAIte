@@ -5,7 +5,12 @@ import { env } from "@/data/env/schema";
 
 const pool = new Pool({
   connectionString: env.DATABASE_URL,
-  ssl: true,
+  ssl: {
+    rejectUnauthorized: false,
+  },
+  max: 20,
+  idleTimeoutMillis: 30000,
+  connectionTimeoutMillis: 2000,
 });
 
 export const db = drizzle(pool, { schema });

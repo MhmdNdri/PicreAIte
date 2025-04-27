@@ -3,6 +3,7 @@
 import { useAuth } from "@/lib/auth-context";
 import { useRouter } from "next/navigation";
 import { useEffect } from "react";
+import Link from "next/link";
 
 export default function AdminPage() {
   const { isAuthenticated, logout } = useAuth();
@@ -19,62 +20,31 @@ export default function AdminPage() {
   }
 
   return (
-    <div className="min-h-screen bg-background p-4">
-      {/* Top Navigation Bar */}
-      <nav className="bg-white/80 dark:bg-[#1A1E33]/80 backdrop-blur-md shadow-lg border-b border-gray-200/10 dark:border-gray-700/10">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex justify-between h-16">
-            <div className="flex items-center">
-              <div className="flex-shrink-0 flex items-center">
-                <div className="h-8 w-8 bg-[#00F5FF] rounded-lg flex items-center justify-center">
-                  <svg
-                    xmlns="http://www.w3.org/2000/svg"
-                    className="h-5 w-5 text-[#1A1E33]"
-                    fill="none"
-                    viewBox="0 0 24 24"
-                    stroke="currentColor"
-                  >
-                    <path
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      strokeWidth={2}
-                      d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"
-                    />
-                  </svg>
-                </div>
-                <h1 className="ml-3 text-xl font-semibold text-[#1A1E33] dark:text-[#E6F0FA]">
-                  Admin Dashboard
-                </h1>
-              </div>
-            </div>
-            <div className="flex items-center">
-              <button
-                onClick={logout}
-                className="ml-4 px-4 py-2 text-sm font-medium text-white bg-[#FF00A8] hover:bg-[#FF00A8]/90 rounded-lg focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-[#FF00A8] dark:focus:ring-offset-[#1A1E33] transition duration-150 ease-in-out"
-              >
-                Logout
-              </button>
-            </div>
-          </div>
+    <div className="min-h-screen bg-gradient-to-b from-background to-muted">
+      <div className="container mx-auto px-4 py-8">
+        <div className="flex justify-between items-center mb-8">
+          <h1 className="text-3xl font-bold">Admin Dashboard</h1>
+          <button
+            onClick={logout}
+            className="bg-red-500 text-white px-4 py-2 rounded-md hover:bg-red-600"
+          >
+            Logout
+          </button>
         </div>
-      </nav>
 
-      {/* Main Content */}
-      <main className="max-w-7xl mx-auto py-6 sm:px-6 lg:px-8">
-        {/* Welcome Section */}
-        <div className="px-4 py-6 sm:px-0">
-          <div className="bg-white/80 dark:bg-[#1A1E33]/80 backdrop-blur-md rounded-xl shadow-lg border border-gray-200/10 dark:border-gray-700/10 p-6">
-            <h2 className="text-2xl font-bold text-[#1A1E33] dark:text-[#E6F0FA] mb-4">
-              Welcome to the Admin Dashboard
-            </h2>
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-8">
+          <Link
+            href="/admin/prompts"
+            className="bg-white/80 dark:bg-[#1A1E33]/80 backdrop-blur-md p-6 rounded-lg border border-gray-200/10 dark:border-gray-700/10 hover:bg-white/90 dark:hover:bg-[#1A1E33]/90 transition-colors"
+          >
+            <h2 className="text-xl font-semibold mb-2">Manage Prompts</h2>
             <p className="text-gray-600 dark:text-gray-400">
-              This is your protected admin area. You can manage your application
-              from here.
+              Create and manage AI image transformation prompts
             </p>
-          </div>
+          </Link>
+          {/* Add more admin sections here */}
         </div>
 
-        {/* Stats Section */}
         <div className="mt-8 grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-3">
           {/* Example Stat Card 1 */}
           <div className="bg-white/80 dark:bg-[#1A1E33]/80 backdrop-blur-md overflow-hidden shadow-lg rounded-lg border border-gray-200/10 dark:border-gray-700/10">
@@ -176,7 +146,6 @@ export default function AdminPage() {
           </div>
         </div>
 
-        {/* Action Section */}
         <div className="mt-8">
           <div className="bg-white/80 dark:bg-[#1A1E33]/80 backdrop-blur-md shadow-lg rounded-lg border border-gray-200/10 dark:border-gray-700/10">
             <div className="px-4 py-5 sm:p-6">
@@ -184,7 +153,10 @@ export default function AdminPage() {
                 Quick Actions
               </h3>
               <div className="mt-5 grid grid-cols-1 gap-4 sm:grid-cols-2">
-                <button className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-[#1A1E33] bg-[#00F5FF] hover:bg-[#00F5FF]/90 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-[#00F5FF] dark:focus:ring-offset-[#1A1E33]">
+                <Link
+                  href="/admin/prompts"
+                  className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-[#1A1E33] bg-[#00F5FF] hover:bg-[#00F5FF]/90 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-[#00F5FF] dark:focus:ring-offset-[#1A1E33]"
+                >
                   <svg
                     className="mr-2 h-5 w-5"
                     fill="none"
@@ -198,8 +170,8 @@ export default function AdminPage() {
                       d="M12 6v6m0 0v6m0-6h6m-6 0H6"
                     />
                   </svg>
-                  Add New User
-                </button>
+                  Manage Prompts
+                </Link>
                 <button className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-[#FF00A8] hover:bg-[#FF00A8]/90 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-[#FF00A8] dark:focus:ring-offset-[#1A1E33]">
                   <svg
                     className="mr-2 h-5 w-5"
@@ -220,7 +192,7 @@ export default function AdminPage() {
             </div>
           </div>
         </div>
-      </main>
+      </div>
     </div>
   );
 }
