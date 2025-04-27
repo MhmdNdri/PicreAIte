@@ -5,12 +5,15 @@ import { useTheme } from "next-themes";
 import { Menu, X, Sun, Moon } from "lucide-react";
 import Link from "next/link";
 import { UserButton, SignInButton, useUser } from "@clerk/nextjs";
+import { usePathname } from "next/navigation";
 
 export function Navbar() {
   const [mounted, setMounted] = useState(false);
   const [isOpen, setIsOpen] = useState(false);
   const { theme, setTheme } = useTheme();
   const { isSignedIn } = useUser();
+  const pathname = usePathname();
+  const isHomePage = pathname === "/";
 
   useEffect(() => {
     setMounted(true);
@@ -22,11 +25,15 @@ export function Navbar() {
     <nav className="fixed w-full z-50 transition-all duration-300">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-2">
         <div
-          className="flex items-center justify-between h-16 bg-white/80 dark:bg-[#1A1E33]/80 backdrop-blur-md rounded-2xl px-6 shadow-lg border border-gray-200/10 dark:border-gray-700/10 animate-navbar-expand"
+          className={`flex items-center justify-between h-16 bg-white/80 dark:bg-[#1A1E33]/80 backdrop-blur-md rounded-2xl px-6 shadow-lg border border-gray-200/10 dark:border-gray-700/10 ${
+            isHomePage ? "animate-navbar-expand" : ""
+          }`}
           style={{
-            animation: "navbarExpand 1s ease-out forwards",
+            animation: isHomePage
+              ? "navbarExpand 1s ease-out forwards"
+              : "none",
             transformOrigin: "center",
-            opacity: 0,
+            opacity: isHomePage ? 0 : 1,
           }}
         >
           <div className="flex items-center">
