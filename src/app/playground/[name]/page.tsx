@@ -2,7 +2,7 @@ import { redirect } from "next/navigation";
 import { auth } from "@clerk/nextjs/server";
 import { db } from "@/drizzle/db";
 import { PromptTable } from "@/drizzle/schema";
-import { eq, isNull } from "drizzle-orm";
+import { eq, isNull, and } from "drizzle-orm";
 import Link from "next/link";
 import { ArrowLeft, Upload } from "lucide-react";
 
@@ -22,7 +22,10 @@ export default async function PromptPage({
     .select()
     .from(PromptTable)
     .where(
-      eq(PromptTable.name, resolvedParams.name) && isNull(PromptTable.deletedAt)
+      and(
+        eq(PromptTable.name, resolvedParams.name),
+        isNull(PromptTable.deletedAt)
+      )
     )
     .then((prompts: (typeof PromptTable.$inferSelect)[]) => prompts[0]);
 
