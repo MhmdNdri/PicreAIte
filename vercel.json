@@ -1,6 +1,6 @@
 {
   "functions": {
-    "api/generateImage": {
+    "src/app/api/generateImage/route": {
       "maxDuration": 60
     }
   }
