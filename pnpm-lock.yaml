@@ -76,9 +76,6 @@ dependencies:
     version: 3.24.3
 
 devDependencies:
-  '@eslint/eslintrc':
-    specifier: ^3
-    version: 3.3.1
   '@types/node':
     specifier: ^20
     version: 20.17.30

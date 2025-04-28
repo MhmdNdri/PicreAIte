@@ -45,7 +45,6 @@
     "zod": "^3.24.3"
   },
   "devDependencies": {
-    "@eslint/eslintrc": "^3",
     "@types/node": "^20",
     "@types/node-fetch": "^2.6.12",
     "@types/pg": "^8.11.14",
