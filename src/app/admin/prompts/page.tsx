@@ -51,12 +51,14 @@ const FormTextarea = ({
   value,
   onChange,
   disabled = false,
+  placeholder = "",
   className = "",
 }: {
   label: string;
   value: string;
   onChange: (value: string) => void;
   disabled?: boolean;
+  placeholder?: string;
   className?: string;
 }) => (
   <div>
@@ -66,6 +68,7 @@ const FormTextarea = ({
       onChange={(e) => onChange(e.target.value)}
       className={`w-full p-2 border rounded-md shadow-sm ${className}`}
       disabled={disabled}
+      placeholder={placeholder}
     />
   </div>
 );
@@ -131,38 +134,35 @@ const PromptForm = ({
       label="Name"
       value={data.name || ""}
       onChange={(value) => onChange({ ...data, name: value })}
-      disabled={isLoading}
+      placeholder="Enter prompt name"
     />
     <FormInput
       label="Type"
       value={data.type || ""}
       onChange={(value) => onChange({ ...data, type: value })}
-      disabled={isLoading}
-    />
-    <FormInput
-      label="Image URL"
-      value={data.imageUrl || ""}
-      onChange={(value) => onChange({ ...data, imageUrl: value })}
-      type="url"
-      disabled={isLoading}
-      placeholder="https://example.com/image.jpg"
+      placeholder="Enter prompt type"
     />
     <FormTextarea
       label="Prompt Description"
       value={data.promptDesc || ""}
       onChange={(value) => onChange({ ...data, promptDesc: value })}
-      disabled={isLoading}
-      className="h-72"
+      placeholder="Enter prompt description"
+      className="h-96"
     />
-    <div className="flex gap-2">
-      <ActionButton
-        onClick={onSubmit}
-        disabled={isLoading}
-        loading={isLoading}
-        variant="primary"
-      >
-        {isEditing ? "Apply" : "Create"}
-      </ActionButton>
+    <FormTextarea
+      label="Description"
+      value={data.description || ""}
+      onChange={(value) => onChange({ ...data, description: value })}
+      placeholder="Enter additional description"
+      className="h-24"
+    />
+    <FormInput
+      label="Image URL"
+      value={data.imageUrl || ""}
+      onChange={(value) => onChange({ ...data, imageUrl: value })}
+      placeholder="Enter image URL"
+    />
+    <div className="flex justify-end space-x-2">
       <ActionButton
         onClick={onCancel}
         disabled={isLoading}
@@ -170,6 +170,9 @@ const PromptForm = ({
         variant="secondary"
       >
         Cancel
+      </ActionButton>
+      <ActionButton onClick={onSubmit} disabled={isLoading} loading={isLoading}>
+        {isEditing ? "Update" : "Create"}
       </ActionButton>
     </div>
   </div>
@@ -289,6 +292,7 @@ export default function PromptsPage() {
       });
     } catch (error) {
       console.error("Failed to create prompt:", error);
+      alert(error instanceof Error ? error.message : "Failed to create prompt");
     }
   };
 

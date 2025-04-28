@@ -48,8 +48,12 @@ export async function POST(request: Request) {
 
     return NextResponse.json(newPrompt);
   } catch (error) {
+    console.error("Error creating prompt:", error);
     return NextResponse.json(
-      { error: "Failed to create prompt" },
+      {
+        error: "Failed to create prompt",
+        details: error instanceof Error ? error.message : "Unknown error",
+      },
       { status: 500 }
     );
   }
@@ -60,33 +64,13 @@ export async function PUT(request: Request) {
     const data = await request.json();
 
     if (!data.id) {
-      return NextResponse.json(
-        { error: "Prompt ID is required" },
-        { status: 400 }
-      );
-    }
-
-    // Validate required fields
-    if (!data.name || !data.type || !data.promptDesc) {
-      return NextResponse.json(
-        {
-          error: "Missing required fields",
-          received: {
-            name: data.name,
-            type: data.type,
-            promptDesc: data.promptDesc,
-          },
-        },
-        { status: 400 }
-      );
+      return NextResponse.json({ error: "Missing prompt ID" }, { status: 400 });
     }
 
     const [updatedPrompt] = await db
       .update(PromptTable)
       .set({
-        name: data.name,
-        type: data.type,
-        promptDesc: data.promptDesc,
+        ...data,
         updatedAt: new Date(),
       })
       .where(eq(PromptTable.id, data.id))
