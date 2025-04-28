@@ -1,6 +1,13 @@
-module.exports = {
-  extends: ["next/core-web-vitals"],
-  rules: {
-    // Add any custom rules here
+import next from "@next/eslint-plugin-next";
+
+export default [
+  {
+    files: ["**/*.{js,jsx,ts,tsx}"],
+    plugins: {
+      next,
+    },
+    rules: {
+      // Add any custom rules here
+    },
   },
-};
+];
