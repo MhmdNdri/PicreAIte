@@ -3,10 +3,7 @@ import { db } from "@/drizzle/db";
 import { PromptTable } from "@/drizzle/schema";
 import { eq, isNull, and } from "drizzle-orm";
 
-export async function GET(
-  request: NextRequest,
-  { params }: { params: { name: string } }
-) {
+export async function GET(request: NextRequest, { params }: { params: any }) {
   try {
     const prompt = await db
       .select()
