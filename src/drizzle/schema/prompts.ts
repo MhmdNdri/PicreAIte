@@ -7,6 +7,7 @@ export const PromptTable = pgTable("prompts", {
   promptDesc: text("prompt_desc").notNull(),
   description: text("description"),
   imageUrl: text("image_url"),
+  orginal_Image: text("orginal_Image"),
   createdAt: timestamp({ withTimezone: true }).defaultNow().notNull(),
   updatedAt: timestamp({ withTimezone: true }).defaultNow().notNull(),
   deletedAt: timestamp({ withTimezone: true }),

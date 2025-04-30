@@ -50,6 +50,7 @@ export default async function PlaygroundPage() {
                 name={prompt.name}
                 type={prompt.type}
                 imageUrl={prompt.imageUrl}
+                orginal_Image={prompt.orginal_Image}
               />
             ))}
           </div>
