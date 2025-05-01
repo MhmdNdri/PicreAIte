@@ -11,6 +11,7 @@ import { ProfileMenu } from "./ProfileMenu";
 export function Navbar() {
   const [mounted, setMounted] = useState(false);
   const [isOpen, setIsOpen] = useState(false);
+  const [animationComplete, setAnimationComplete] = useState(false);
   const { theme, setTheme } = useTheme();
   const { isSignedIn } = useUser();
   const pathname = usePathname();
@@ -18,14 +19,40 @@ export function Navbar() {
 
   useEffect(() => {
     setMounted(true);
-  }, []);
+    if (isHomePage) {
+      // Start with an invisible navbar
+      setTimeout(() => {
+        setAnimationComplete(true);
+      }, 800); // Wait for page load before starting animation
+    } else {
+      setAnimationComplete(true);
+    }
+  }, [isHomePage]);
 
   if (!mounted) return null;
+
+  // Calculate animation styles based on whether we're on the home page and animation status
+  const navbarStyle =
+    isHomePage && !animationComplete
+      ? {
+          transform: "scaleX(0)",
+          opacity: 0,
+        }
+      : {
+          transform: "scaleX(1)",
+          opacity: 1,
+          transition:
+            "transform 0.8s cubic-bezier(0.34, 1.56, 0.64, 1), opacity 0.8s ease-in-out",
+          transformOrigin: "center",
+        };
 
   return (
     <nav className="fixed w-full z-50 transition-all duration-300">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-2">
-        <div className="flex items-center justify-between h-16 bg-white/80 dark:bg-[#1A1E33]/80 backdrop-blur-md rounded-2xl px-6 shadow-lg border border-gray-200/10 dark:border-gray-700/10">
+        <div
+          style={navbarStyle}
+          className="flex items-center justify-between h-16 bg-white/80 dark:bg-[#1A1E33]/80 backdrop-blur-md rounded-2xl px-6 shadow-lg border border-gray-200/10 dark:border-gray-700/10"
+        >
           <div className="flex items-center">
             <Link
               href="/"
