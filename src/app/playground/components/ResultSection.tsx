@@ -1,4 +1,4 @@
-import React, { useRef } from "react";
+import React from "react";
 import Image from "next/image";
 import { Download } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -25,8 +25,6 @@ export function ResultSection({
   onReset,
   isMobile = false,
 }: ResultSectionProps) {
-  const downloadRef = useRef<HTMLAnchorElement>(null);
-
   const getAspectRatioClass = (size: SizeOption): string => {
     switch (size) {
       case "1024x1024":
@@ -43,12 +41,25 @@ export function ResultSection({
   const handleDownload = () => {
     if (!result) return;
 
-    const link = downloadRef.current || document.createElement("a");
-    link.href = `data:image/png;base64,${result}`;
+    // Convert base64 to blob
+    const byteString = atob(result);
+    const arrayBuffer = new ArrayBuffer(byteString.length);
+    const uint8Array = new Uint8Array(arrayBuffer);
+
+    for (let i = 0; i < byteString.length; i++) {
+      uint8Array[i] = byteString.charCodeAt(i);
+    }
+
+    const blob = new Blob([arrayBuffer], { type: "image/png" });
+    const url = URL.createObjectURL(blob);
+
+    const link = document.createElement("a");
+    link.href = url;
     link.download = `${promptName
       .replace(/\s+/g, "-")
       .toLowerCase()}-transformed.png`;
     link.click();
+    URL.revokeObjectURL(url);
   };
 
   return (
@@ -122,8 +133,6 @@ export function ResultSection({
           )}
         </div>
       )}
-
-      <a ref={downloadRef} className="hidden" />
     </div>
   );
 }
