@@ -5,7 +5,12 @@ const nextConfig = {
     authInterrupts: true,
   },
   images: {
-    domains: ["i.ibb.co"],
+    remotePatterns: [
+      {
+        protocol: "https",
+        hostname: "i.ibb.co",
+      },
+    ],
   },
 };
 
