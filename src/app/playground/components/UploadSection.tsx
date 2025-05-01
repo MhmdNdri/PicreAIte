@@ -27,7 +27,7 @@ interface UploadSectionProps {
   isMobile?: boolean;
 }
 
-const MAX_IMAGES = 5;
+const MAX_IMAGES = 1;
 
 export function UploadSection({
   images,
@@ -108,7 +108,6 @@ export function UploadSection({
               onChange={handleFileChange}
               className="hidden"
               id={isMobile ? "mobile-image" : "desktop-image"}
-              multiple
             />
             <label
               htmlFor={isMobile ? "mobile-image" : "desktop-image"}
@@ -119,8 +118,8 @@ export function UploadSection({
                   <Upload className="h-8 w-8 text-gray-400 mb-2" />
                   <p className="text-xs text-muted-foreground">
                     {images.length > 0
-                      ? "Tap to add more photos (optional)"
-                      : "Tap to upload photos"}
+                      ? "Tap to change photo"
+                      : "Tap to upload photo"}
                   </p>
                 </div>
               ) : (
@@ -130,38 +129,27 @@ export function UploadSection({
                   </div>
                   <p className="text-sm font-medium text-muted-foreground mb-1">
                     {images.length > 0
-                      ? "Drop more photos here (optional)"
-                      : "Drop your images here"}
+                      ? "Drop a new photo here to replace"
+                      : "Drop your image here"}
                   </p>
                   <p className="text-xs text-muted-foreground">
                     or click to browse
                   </p>
                   <p className="mt-2 text-xs text-muted-foreground">
-                    Upload up to {MAX_IMAGES} images (JPG, PNG, WebP)
+                    Upload your image (JPG, PNG, WebP)
                   </p>
                 </div>
               )}
             </label>
           </div>
-        ) : (
-          <div className="rounded-lg bg-gray-50 dark:bg-gray-800/50 p-4 text-center">
-            <p className="text-sm text-muted-foreground">
-              Maximum number of images reached ({MAX_IMAGES})
-            </p>
-            <p className="text-xs text-muted-foreground mt-1">
-              Please remove some images to upload more
-            </p>
-          </div>
-        )}
+        ) : null}
       </div>
 
       {/* Uploaded images */}
       {images.length > 0 && (
         <div>
           <div className="flex items-center justify-between mb-3">
-            <p className="text-sm text-muted-foreground">
-              Uploaded Images ({images.length}/{MAX_IMAGES})
-            </p>
+            <p className="text-sm text-muted-foreground">Uploaded Image</p>
             {images.length > 1 && (
               <Button
                 variant="outline"
@@ -185,7 +173,6 @@ export function UploadSection({
                 alt={`Selected image ${index + 1}`}
                 className="aspect-square"
                 onRemove={() => onRemoveImage(index)}
-                badge={`#${index + 1}`}
               />
             ))}
           </div>
@@ -207,9 +194,11 @@ export function UploadSection({
                 <SelectValue placeholder="Select quality" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="low">Low (Faster)</SelectItem>
-                <SelectItem value="medium">Medium</SelectItem>
-                <SelectItem value="high">High (Recommended)</SelectItem>
+                <SelectItem value="low">Low (Faster) ~ $0.01-0.05</SelectItem>
+                <SelectItem value="medium">Medium ~ $0.05-0.15</SelectItem>
+                <SelectItem value="high">
+                  High (Recommended) ~ $0.15-0.40
+                </SelectItem>
               </SelectContent>
             </Select>
             <p className="text-xs text-muted-foreground mt-1">
