@@ -1,16 +1,33 @@
 import { NextRequest, NextResponse } from "next/server";
+import { getAuth } from "@clerk/nextjs/server";
+import { ApiKeyService } from "@/services/apiKeyService";
 
 export const maxDuration = 60; // Set max duration to 60 seconds (1 minute)
 export const runtime = "nodejs"; // Specify Node.js runtime
 
 export async function POST(request: NextRequest) {
   try {
-    // Ensure OpenAI API key is set
-    const openaiApiKey = process.env.OPENAI_API_KEY;
-    if (!openaiApiKey) {
+    const { userId } = getAuth(request);
+
+    if (!userId) {
       return NextResponse.json(
-        { error: "OpenAI API key is missing" },
-        { status: 500 }
+        {
+          error: "You need to be logged in to use this feature",
+        },
+        { status: 401 }
+      );
+    }
+
+    // Get user's API key
+    const apiKey = await ApiKeyService.getApiKey(userId);
+
+    if (!apiKey) {
+      return NextResponse.json(
+        {
+          error:
+            "API key not found. Please set your API key in the API Key settings page.",
+        },
+        { status: 400 }
       );
     }
 
@@ -49,7 +66,7 @@ export async function POST(request: NextRequest) {
         // First image goes under 'image' key
         openaiFormData.append("image", imageFile as File);
       } else {
-        // Additional images go under 'image' key too (OpenAI will handle this)
+        // Additional images go under 'image' key too
         openaiFormData.append("image", imageFile as File);
       }
     });
@@ -63,17 +80,31 @@ export async function POST(request: NextRequest) {
     const response = await fetch("https://api.openai.com/v1/images/edits", {
       method: "POST",
       headers: {
-        Authorization: `Bearer ${openaiApiKey}`,
+        Authorization: `Bearer ${apiKey}`,
       },
       body: openaiFormData,
     });
 
     // Check if response is successful
     if (!response.ok) {
-      const errorData = await response.json();
-      console.error("OpenAI API error:", errorData);
+      let errorMessage = "Error connecting to OpenAI API";
+
+      try {
+        const errorData = await response.json();
+        errorMessage =
+          errorData.error?.message || "Error with image generation";
+      } catch (parseError) {
+        // If JSON parsing fails, try to get text
+        try {
+          const errorText = await response.text();
+          errorMessage = errorText || errorMessage;
+        } catch (e) {
+          // Use default error message
+        }
+      }
+
       return NextResponse.json(
-        { error: errorData.error?.message || "Error calling OpenAI API" },
+        { error: errorMessage },
         { status: response.status }
       );
     }
@@ -81,12 +112,18 @@ export async function POST(request: NextRequest) {
     // Get the response data
     const data = await response.json();
 
+    // Update last used timestamp
+    await ApiKeyService.updateLastUsed(userId);
+
     // Return the response
     return NextResponse.json(data);
   } catch (error) {
     console.error("Error in generate-image API route:", error);
+
     return NextResponse.json(
-      { error: "Internal server error" },
+      {
+        error: "Something went wrong. Please check your API key and try again.",
+      },
       { status: 500 }
     );
   }
