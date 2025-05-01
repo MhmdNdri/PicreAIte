@@ -4,8 +4,9 @@ import { useState, useEffect } from "react";
 import { useTheme } from "next-themes";
 import { Menu, X, Sun, Moon } from "lucide-react";
 import Link from "next/link";
-import { UserButton, SignInButton, useUser } from "@clerk/nextjs";
+import { SignInButton, useUser } from "@clerk/nextjs";
 import { usePathname } from "next/navigation";
+import { ProfileMenu } from "./ProfileMenu";
 
 export function Navbar() {
   const [mounted, setMounted] = useState(false);
@@ -57,6 +58,14 @@ export function Navbar() {
             >
               Contact
             </Link>
+            {isSignedIn && (
+              <Link
+                href="/api-key"
+                className="text-gray-700 dark:text-[#E6F0FA] hover:font-bold transition-all duration-300"
+              >
+                API Key
+              </Link>
+            )}
             {!isSignedIn ? (
               <SignInButton mode="modal">
                 <button className="px-3 py-1.5 rounded-lg bg-gradient-to-b from-gray-100 to-gray-200 dark:from-gray-800 dark:to-gray-900 text-gray-800 dark:text-gray-100 font-medium text-sm hover:from-gray-200 hover:to-gray-100 dark:hover:from-gray-900 dark:hover:to-gray-800 transition-all duration-300 transform hover:-translate-y-0.5 active:translate-y-0 shadow-[0_4px_0_0_rgba(0,0,0,0.1),0_2px_4px_rgba(0,0,0,0.1)] dark:shadow-[0_4px_0_0_rgba(255,255,255,0.1),0_2px_4px_rgba(0,0,0,0.2)] hover:shadow-[0_6px_0_0_rgba(0,0,0,0.1),0_4px_8px_rgba(0,0,0,0.1)] dark:hover:shadow-[0_6px_0_0_rgba(255,255,255,0.1),0_4px_8px_rgba(0,0,0,0.3)] border border-gray-200 dark:border-gray-700">
@@ -64,14 +73,7 @@ export function Navbar() {
                 </button>
               </SignInButton>
             ) : (
-              <UserButton
-                afterSignOutUrl="/"
-                appearance={{
-                  elements: {
-                    avatarBox: "w-10 h-10",
-                  },
-                }}
-              />
+              <ProfileMenu />
             )}
             <button
               onClick={() => setTheme(theme === "dark" ? "light" : "dark")}
@@ -101,14 +103,7 @@ export function Navbar() {
               </SignInButton>
             ) : (
               <div className="mr-4">
-                <UserButton
-                  afterSignOutUrl="/"
-                  appearance={{
-                    elements: {
-                      avatarBox: "w-10 h-10",
-                    },
-                  }}
-                />
+                <ProfileMenu />
               </div>
             )}
             <button
@@ -176,6 +171,14 @@ export function Navbar() {
           >
             Contact
           </Link>
+          {isSignedIn && (
+            <Link
+              href="/api-key"
+              className="block px-3 py-2 rounded-md text-gray-700 dark:text-[#E6F0FA] hover:font-bold transition-all duration-300"
+            >
+              API Key
+            </Link>
+          )}
           {!isSignedIn ? (
             <SignInButton mode="modal">
               <button className="w-full text-left px-3 py-1.5 rounded-lg bg-gradient-to-b from-gray-100 to-gray-200 dark:from-gray-800 dark:to-gray-900 text-gray-800 dark:text-gray-100 font-medium text-sm hover:from-gray-200 hover:to-gray-100 dark:hover:from-gray-900 dark:hover:to-gray-800 transition-all duration-300 transform hover:-translate-y-0.5 active:translate-y-0 shadow-[0_4px_0_0_rgba(0,0,0,0.1),0_2px_4px_rgba(0,0,0,0.1)] dark:shadow-[0_4px_0_0_rgba(255,255,255,0.1),0_2px_4px_rgba(0,0,0,0.2)] hover:shadow-[0_6px_0_0_rgba(0,0,0,0.1),0_4px_8px_rgba(0,0,0,0.1)] dark:hover:shadow-[0_6px_0_0_rgba(255,255,255,0.1),0_4px_8px_rgba(0,0,0,0.3)] border border-gray-200 dark:border-gray-700">
@@ -184,14 +187,7 @@ export function Navbar() {
             </SignInButton>
           ) : (
             <div className="px-3 py-2">
-              <UserButton
-                afterSignOutUrl="/"
-                appearance={{
-                  elements: {
-                    avatarBox: "w-10 h-10",
-                  },
-                }}
-              />
+              <ProfileMenu />
             </div>
           )}
         </div>
