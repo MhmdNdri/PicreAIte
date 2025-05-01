@@ -15,8 +15,8 @@ export function Providers({ children }: { children: React.ReactNode }) {
           enableSystem
           disableTransitionOnChange
         >
-          {children}
           <ToastProvider />
+          {children}
         </ThemeProvider>
       </QueryProvider>
     </ClerkProvider>
