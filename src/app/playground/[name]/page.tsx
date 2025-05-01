@@ -1,6 +1,6 @@
 "use client";
 
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useMutation } from "@tanstack/react-query";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@clerk/nextjs";
 import { Button } from "@/components/ui/button";
@@ -26,6 +26,20 @@ async function fetchPrompt(name: string) {
   return response.json();
 }
 
+async function generateImage(formData: FormData) {
+  const response = await fetch("/api/generateImage", {
+    method: "POST",
+    body: formData,
+  });
+
+  if (!response.ok) {
+    const errorData = await response.json();
+    throw new Error(errorData.error || "Failed to edit image");
+  }
+
+  return response.json();
+}
+
 export default function PromptPage({
   params,
 }: {
@@ -33,14 +47,11 @@ export default function PromptPage({
 }) {
   const { isLoaded, userId } = useAuth();
   const router = useRouter();
-  const [isLoading, setIsLoading] = useState(false);
   const [images, setImages] = useState<File[]>([]);
   const [quality, setQuality] = useState<"low" | "medium" | "high">("high");
   const [size, setSize] = useState<"1024x1024" | "1536x1024" | "1024x1536">(
     "1024x1024"
   );
-  const [result, setResult] = useState<string | null>(null);
-  const [error, setError] = useState<string | null>(null);
 
   // Unwrap the params Promise using React.use()
   const resolvedParams = use(params);
@@ -50,6 +61,16 @@ export default function PromptPage({
     queryKey: ["prompt", promptName],
     queryFn: () => fetchPrompt(promptName),
     enabled: !!promptName,
+  });
+
+  const {
+    mutate: generateImageMutation,
+    isPending,
+    error,
+    data,
+    reset,
+  } = useMutation({
+    mutationFn: generateImage,
   });
 
   if (!isLoaded) {
@@ -84,47 +105,25 @@ export default function PromptPage({
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    setIsLoading(true);
-    setError(null);
-    setResult(null);
 
-    try {
-      const formData = new FormData();
-      formData.append("prompt", prompt.promptDesc);
-      formData.append("model", "gpt-image-1");
-      formData.append("n", "1");
-      formData.append("quality", quality);
-      formData.append("size", size);
+    const formData = new FormData();
+    formData.append("prompt", prompt.promptDesc);
+    formData.append("model", "gpt-image-1");
+    formData.append("n", "1");
+    formData.append("quality", quality);
+    formData.append("size", size);
 
-      images.forEach((img) => {
-        formData.append("image[]", img);
-      });
+    images.forEach((img) => {
+      formData.append("image[]", img);
+    });
 
-      formData.append("mask", "");
+    formData.append("mask", "");
 
-      const response = await fetch("/api/generateImage", {
-        method: "POST",
-        body: formData,
-      });
-
-      if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.error || "Failed to edit image");
-      }
-
-      const data = await response.json();
-      setResult(data.data[0].b64_json);
-    } catch (err) {
-      setError(
-        err instanceof Error ? err.message : "An unknown error occurred"
-      );
-    } finally {
-      setIsLoading(false);
-    }
+    generateImageMutation(formData);
   };
 
   const handleReset = () => {
-    setResult(null);
+    reset();
     setImages([]);
   };
 
@@ -168,9 +167,9 @@ export default function PromptPage({
               size={size}
               onSizeChange={setSize}
               onSubmit={handleSubmit}
-              isLoading={isLoading}
-              result={result}
-              error={error}
+              isLoading={isPending}
+              result={data?.data?.[0]?.b64_json || null}
+              error={error?.message || null}
             />
 
             {/* Mobile layout */}
@@ -184,9 +183,9 @@ export default function PromptPage({
               size={size}
               onSizeChange={setSize}
               onSubmit={handleSubmit}
-              isLoading={isLoading}
-              result={result}
-              error={error}
+              isLoading={isPending}
+              result={data?.data?.[0]?.b64_json || null}
+              error={error?.message || null}
               onReset={handleReset}
             />
           </CardContent>
