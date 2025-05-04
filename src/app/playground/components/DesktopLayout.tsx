@@ -21,6 +21,7 @@ interface DesktopLayoutProps {
   isLoading: boolean;
   result: string | null;
   error: string | null;
+  onReset: () => void;
 }
 
 export function DesktopLayout({
@@ -36,6 +37,7 @@ export function DesktopLayout({
   isLoading,
   result,
   error,
+  onReset,
 }: DesktopLayoutProps) {
   return (
     <div className="hidden md:block p-6 border-b border-gray-100 dark:border-gray-800">
@@ -88,6 +90,7 @@ export function DesktopLayout({
             error={error}
             size={size}
             promptName={prompt.name}
+            onReset={onReset}
           />
         </div>
       </div>

@@ -170,6 +170,7 @@ export default function PromptPage({
               isLoading={isPending}
               result={data?.data?.[0]?.b64_json || null}
               error={error?.message || null}
+              onReset={handleReset}
             />
 
             {/* Mobile layout */}
