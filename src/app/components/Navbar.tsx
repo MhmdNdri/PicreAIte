@@ -86,12 +86,26 @@ export function Navbar() {
               Contact
             </Link>
             {isSignedIn && (
-              <Link
-                href="/api-key"
-                className="text-gray-700 dark:text-[#E6F0FA] hover:font-bold transition-all duration-300"
-              >
-                API Key
-              </Link>
+              <>
+                <Link
+                  href="/playground"
+                  className="text-gray-700 dark:text-[#E6F0FA] hover:font-bold transition-all duration-300"
+                >
+                  Playground
+                </Link>
+                <Link
+                  href="/gallery"
+                  className="text-gray-700 dark:text-[#E6F0FA] hover:font-bold transition-all duration-300"
+                >
+                  Gallery
+                </Link>
+                <Link
+                  href="/api-key"
+                  className="text-gray-700 dark:text-[#E6F0FA] hover:font-bold transition-all duration-300"
+                >
+                  API Key
+                </Link>
+              </>
             )}
             {!isSignedIn ? (
               <SignInButton mode="modal">
@@ -199,12 +213,26 @@ export function Navbar() {
             Contact
           </Link>
           {isSignedIn && (
-            <Link
-              href="/api-key"
-              className="block px-3 py-2 rounded-md text-gray-700 dark:text-[#E6F0FA] hover:font-bold transition-all duration-300"
-            >
-              API Key
-            </Link>
+            <>
+              <Link
+                href="/playground"
+                className="block px-3 py-2 rounded-md text-gray-700 dark:text-[#E6F0FA] hover:font-bold transition-all duration-300"
+              >
+                Playground
+              </Link>
+              <Link
+                href="/gallery"
+                className="block px-3 py-2 rounded-md text-gray-700 dark:text-[#E6F0FA] hover:font-bold transition-all duration-300"
+              >
+                Gallery
+              </Link>
+              <Link
+                href="/api-key"
+                className="block px-3 py-2 rounded-md text-gray-700 dark:text-[#E6F0FA] hover:font-bold transition-all duration-300"
+              >
+                API Key
+              </Link>
+            </>
           )}
           {!isSignedIn ? (
             <SignInButton mode="modal">

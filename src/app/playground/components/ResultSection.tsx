@@ -1,8 +1,11 @@
-import React from "react";
+import React, { useState } from "react";
 import Image from "next/image";
 import { Download } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { StatusOverlay } from "./StatusOverlay";
+import { toast } from "sonner";
+import { UploadImageButton } from "@/components/UploadImageButton";
+import { Skeleton } from "@/components/ui/skeleton";
 
 export type SizeOption = "1024x1024" | "1536x1024" | "1024x1536";
 
@@ -12,7 +15,7 @@ interface ResultSectionProps {
   error: string | null;
   size: SizeOption;
   promptName: string;
-  onReset?: () => void;
+  onReset: () => void;
   isMobile?: boolean;
 }
 
@@ -25,6 +28,8 @@ export function ResultSection({
   onReset,
   isMobile = false,
 }: ResultSectionProps) {
+  const [imageLoaded, setImageLoaded] = useState(false);
+
   const getAspectRatioClass = (size: SizeOption): string => {
     switch (size) {
       case "1024x1024":
@@ -41,25 +46,44 @@ export function ResultSection({
   const handleDownload = () => {
     if (!result) return;
 
-    // Convert base64 to blob
-    const byteString = atob(result);
-    const arrayBuffer = new ArrayBuffer(byteString.length);
-    const uint8Array = new Uint8Array(arrayBuffer);
+    try {
+      // Create a Blob from the base64 data
+      const byteString = atob(result);
+      const ab = new ArrayBuffer(byteString.length);
+      const ia = new Uint8Array(ab);
 
-    for (let i = 0; i < byteString.length; i++) {
-      uint8Array[i] = byteString.charCodeAt(i);
+      for (let i = 0; i < byteString.length; i++) {
+        ia[i] = byteString.charCodeAt(i);
+      }
+
+      const blob = new Blob([ab], { type: "image/png" });
+
+      // Create a download URL for the blob
+      const url = URL.createObjectURL(blob);
+
+      // Create and trigger the download link
+      const link = document.createElement("a");
+      link.href = url;
+      link.download = `${promptName}-generated.png`;
+      document.body.appendChild(link);
+      link.click();
+
+      // Clean up
+      setTimeout(() => {
+        document.body.removeChild(link);
+        URL.revokeObjectURL(url);
+      }, 100);
+
+      toast.success("Image downloaded successfully");
+    } catch (error) {
+      console.error("Error downloading image:", error);
+      toast.error("Failed to download image");
     }
+  };
 
-    const blob = new Blob([arrayBuffer], { type: "image/png" });
-    const url = URL.createObjectURL(blob);
-
-    const link = document.createElement("a");
-    link.href = url;
-    link.download = `${promptName
-      .replace(/\s+/g, "-")
-      .toLowerCase()}-transformed.png`;
-    link.click();
-    URL.revokeObjectURL(url);
+  // Empty function as UploadImageButton already shows a toast
+  const handleSaveToGallery = (url: string, key: string) => {
+    // The toast is already shown in the UploadImageButton component
   };
 
   return (
@@ -90,14 +114,22 @@ export function ResultSection({
 
           {result && (
             <>
+              {!imageLoaded && (
+                <div className="absolute inset-0 z-10 flex items-center justify-center">
+                  <Skeleton className="h-full w-full rounded-none" />
+                </div>
+              )}
               <Image
                 src={`data:image/png;base64,${result}`}
                 alt="Generated image"
                 fill
-                className="object-contain"
+                className={`object-contain transition-opacity duration-300 ${
+                  imageLoaded ? "opacity-100" : "opacity-0"
+                }`}
                 priority
+                onLoad={() => setImageLoaded(true)}
               />
-              <div className="absolute top-2 left-2 bg-[#00F5FF] text-[#1A1E33] text-xs font-medium px-2 py-1 rounded-md shadow-sm">
+              <div className="absolute top-2 left-2 bg-[#00F5FF] text-[#1A1E33] text-xs font-medium px-2 py-1 rounded-md shadow-sm z-20">
                 Transformed
               </div>
             </>
@@ -106,31 +138,32 @@ export function ResultSection({
       </div>
 
       {result && (
-        <div className={`flex gap-2 mt-3 ${isMobile ? "flex-col" : ""}`}>
+        <div
+          className={`flex ${isMobile ? "flex-col" : "flex-row"} gap-2 mt-4`}
+        >
           <Button
+            variant="outline"
             onClick={handleDownload}
-            className={`flex-1 bg-[#00F5FF] text-[#1A1E33] hover:bg-[#00F5FF]/90 ${
-              isMobile ? "h-9 text-xs" : "h-11 text-sm"
-            } font-medium`}
+            className={`flex items-center ${isMobile ? "w-full" : ""}`}
           >
-            <Download
-              className={`${isMobile ? "h-3.5 w-3.5 mr-1.5" : "h-4 w-4 mr-2"}`}
-            />
-            {isMobile ? "Download" : "Download Image"}
+            <Download className="mr-2 h-4 w-4" />
+            Download
           </Button>
 
-          {onReset && (
-            <Button
-              type="button"
-              variant="outline"
-              className={`flex-1 ${
-                isMobile ? "h-9 text-xs" : "h-11 text-sm"
-              } font-medium`}
-              onClick={onReset}
-            >
-              Create New
-            </Button>
-          )}
+          <UploadImageButton
+            imageData={`data:image/png;base64,${result}`}
+            onUploadComplete={handleSaveToGallery}
+            className={isMobile ? "w-full" : ""}
+            promptType={promptName}
+          />
+
+          <Button
+            variant="secondary"
+            onClick={onReset}
+            className={isMobile ? "w-full mt-2" : "ml-auto"}
+          >
+            Make another
+          </Button>
         </div>
       )}
     </div>

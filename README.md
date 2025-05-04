@@ -9,6 +9,7 @@ A Next.js application with Drizzle ORM and PostgreSQL.
 - Node.js 18 or higher
 - PNPM 8 or higher
 - PostgreSQL database
+- Uploadthing account for image storage
 
 ### Installation
 
@@ -23,6 +24,7 @@ A Next.js application with Drizzle ORM and PostgreSQL.
 
    - Copy `.env.example` to `.env`
    - Update the database configuration in `.env`
+   - Add your Uploadthing credentials (see Environment Variables section)
 
 4. Generate database migrations:
 
@@ -54,12 +56,29 @@ The database is structured as follows:
 
 The application uses the following environment variables:
 
+### Database
+
 - `DATABASE_HOST`: PostgreSQL host
 - `DATABASE_PORT`: PostgreSQL port
 - `DATABASE_USER`: PostgreSQL user
 - `DATABASE_PASSWORD`: PostgreSQL password
 - `DATABASE_NAME`: PostgreSQL database name
 - `DATABASE_SSL`: Whether to use SSL for database connection
+
+### Authentication (Clerk)
+
+- `CLERK_WEBHOOK_SECRET`: Clerk webhook secret
+- `NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY`: Clerk publishable key
+- `CLERK_SECRET_KEY`: Clerk secret key
+- `NEXT_PUBLIC_CLERK_SIGN_IN_URL`: Clerk sign in URL
+- `NEXT_PUBLIC_CLERK_SIGN_UP_URL`: Clerk sign up URL
+- `NEXT_PUBLIC_CLERK_SIGN_IN_FALLBACK_REDIRECT_URL`: Fallback URL after sign in
+- `NEXT_PUBLIC_CLERK_SIGN_UP_FALLBACK_REDIRECT_URL`: Fallback URL after sign up
+
+### Image Storage (Uploadthing)
+
+- `UPLOADTHING_SECRET`: Your uploadthing secret key
+- `UPLOADTHING_TOKEN`: Your uploadthing token
 
 ## Available Scripts
 

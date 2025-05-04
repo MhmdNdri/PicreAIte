@@ -129,13 +129,13 @@ export function PromptCard({
       {/* Special card action button to navigate (since Link is now pointer-events-none) */}
       <Link
         href={`/playground/${name}`}
-        className="absolute bottom-4 right-4 z-[60] bg-white/20 hover:bg-white/30 text-white p-2 rounded-full transition-colors"
+        className="absolute bottom-2 right-2 z-[60] bg-white/30 hover:bg-white/60 text-white p-3 rounded-full transition-colors"
         aria-label={`View ${name}`}
       >
         <svg
           xmlns="http://www.w3.org/2000/svg"
-          width="16"
-          height="16"
+          width="24"
+          height="24"
           viewBox="0 0 24 24"
           fill="none"
           stroke="currentColor"
