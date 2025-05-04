@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { useTheme } from "next-themes";
-import { Menu, X, Sun, Moon } from "lucide-react";
+import { Menu, X, Sun, Moon, Image, Palette, Key, Home } from "lucide-react";
 import Link from "next/link";
 import { SignInButton, useUser } from "@clerk/nextjs";
 import { usePathname } from "next/navigation";
@@ -69,40 +69,32 @@ export function Navbar() {
           <div className="hidden md:flex items-center space-x-8">
             <Link
               href="/"
-              className="text-gray-700 dark:text-[#E6F0FA] hover:font-bold transition-all duration-300"
+              className="flex items-center gap-2 text-gray-700 dark:text-[#E6F0FA] hover:font-bold transition-all duration-300"
             >
+              <Home className="h-5 w-5" />
               Home
-            </Link>
-            <Link
-              href="/about"
-              className="text-gray-700 dark:text-[#E6F0FA] hover:font-bold transition-all duration-300"
-            >
-              About
-            </Link>
-            <Link
-              href="/contact"
-              className="text-gray-700 dark:text-[#E6F0FA] hover:font-bold transition-all duration-300"
-            >
-              Contact
             </Link>
             {isSignedIn && (
               <>
                 <Link
                   href="/playground"
-                  className="text-gray-700 dark:text-[#E6F0FA] hover:font-bold transition-all duration-300"
+                  className="flex items-center gap-2 text-gray-700 dark:text-[#E6F0FA] hover:font-bold transition-all duration-300"
                 >
+                  <Palette className="h-5 w-5" />
                   Playground
                 </Link>
                 <Link
                   href="/gallery"
-                  className="text-gray-700 dark:text-[#E6F0FA] hover:font-bold transition-all duration-300"
+                  className="flex items-center gap-2 text-gray-700 dark:text-[#E6F0FA] hover:font-bold transition-all duration-300"
                 >
+                  <Image className="h-5 w-5" />
                   Gallery
                 </Link>
                 <Link
                   href="/api-key"
-                  className="text-gray-700 dark:text-[#E6F0FA] hover:font-bold transition-all duration-300"
+                  className="flex items-center gap-2 text-gray-700 dark:text-[#E6F0FA] hover:font-bold transition-all duration-300"
                 >
+                  <Key className="h-5 w-5" />
                   API Key
                 </Link>
               </>
@@ -196,40 +188,32 @@ export function Navbar() {
         <div className="px-2 pt-2 pb-3 space-y-1 sm:px-3 bg-white/90 dark:bg-[#1A1E33]/90 backdrop-blur-md shadow-lg border-t border-gray-200/20 dark:border-gray-700/20 rounded-b-2xl mx-4">
           <Link
             href="/"
-            className="block px-3 py-2 rounded-md text-gray-700 dark:text-[#E6F0FA] hover:font-bold transition-all duration-300"
+            className="flex items-center gap-2 px-3 py-2 rounded-md text-gray-700 dark:text-[#E6F0FA] hover:font-bold transition-all duration-300"
           >
+            <Home className="h-5 w-5" />
             Home
-          </Link>
-          <Link
-            href="/about"
-            className="block px-3 py-2 rounded-md text-gray-700 dark:text-[#E6F0FA] hover:font-bold transition-all duration-300"
-          >
-            About
-          </Link>
-          <Link
-            href="/contact"
-            className="block px-3 py-2 rounded-md text-gray-700 dark:text-[#E6F0FA] hover:font-bold transition-all duration-300"
-          >
-            Contact
           </Link>
           {isSignedIn && (
             <>
               <Link
                 href="/playground"
-                className="block px-3 py-2 rounded-md text-gray-700 dark:text-[#E6F0FA] hover:font-bold transition-all duration-300"
+                className="flex items-center gap-2 px-3 py-2 rounded-md text-gray-700 dark:text-[#E6F0FA] hover:font-bold transition-all duration-300"
               >
+                <Palette className="h-5 w-5" />
                 Playground
               </Link>
               <Link
                 href="/gallery"
-                className="block px-3 py-2 rounded-md text-gray-700 dark:text-[#E6F0FA] hover:font-bold transition-all duration-300"
+                className="flex items-center gap-2 px-3 py-2 rounded-md text-gray-700 dark:text-[#E6F0FA] hover:font-bold transition-all duration-300"
               >
+                <Image className="h-5 w-5" />
                 Gallery
               </Link>
               <Link
                 href="/api-key"
-                className="block px-3 py-2 rounded-md text-gray-700 dark:text-[#E6F0FA] hover:font-bold transition-all duration-300"
+                className="flex items-center gap-2 px-3 py-2 rounded-md text-gray-700 dark:text-[#E6F0FA] hover:font-bold transition-all duration-300"
               >
+                <Key className="h-5 w-5" />
                 API Key
               </Link>
             </>
