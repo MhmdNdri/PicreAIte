@@ -28,6 +28,7 @@ interface UploadSectionProps {
 }
 
 const MAX_IMAGES = 1;
+const MAX_FILE_SIZE = 4 * 1024 * 1024; // 4MB in bytes
 
 export function UploadSection({
   images,
@@ -60,9 +61,23 @@ export function UploadSection({
         if (totalImages > MAX_IMAGES) {
           toast.error(`You can only upload up to ${MAX_IMAGES} images`, {
             description: "Please remove some images first.",
+            icon: "❌",
           });
           return;
         }
+
+        // Check file sizes
+        const oversizedFiles = filesArray.filter(
+          (file) => file.size > MAX_FILE_SIZE
+        );
+        if (oversizedFiles.length > 0) {
+          toast.error("File too large", {
+            description: "Please select images smaller than 4MB",
+            icon: "❌",
+          });
+          return;
+        }
+
         onImagesChange([...images, ...filesArray]);
       }
     }
@@ -75,10 +90,30 @@ export function UploadSection({
       if (totalImages > MAX_IMAGES) {
         toast.error(`You can only upload up to ${MAX_IMAGES} images`, {
           description: "Please remove some images first.",
+          icon: "❌",
         });
+        // Reset the input
+        e.target.value = "";
         return;
       }
+
+      // Check file sizes
+      const oversizedFiles = filesArray.filter(
+        (file) => file.size > MAX_FILE_SIZE
+      );
+      if (oversizedFiles.length > 0) {
+        toast.error("File too large", {
+          description: "Please select images smaller than 4MB",
+          icon: "❌",
+        });
+        // Reset the input
+        e.target.value = "";
+        return;
+      }
+
       onImagesChange([...images, ...filesArray]);
+      // Reset the input after successful upload
+      e.target.value = "";
     }
   };
 
