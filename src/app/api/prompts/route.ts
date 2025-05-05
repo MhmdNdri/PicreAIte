@@ -67,19 +67,50 @@ export async function PUT(request: Request) {
       return NextResponse.json({ error: "Missing prompt ID" }, { status: 400 });
     }
 
+    // Validate required fields
+    if (!data.name || !data.type || !data.promptDesc) {
+      return NextResponse.json(
+        {
+          error: "Missing required fields",
+          received: {
+            name: data.name,
+            type: data.type,
+            promptDesc: data.promptDesc,
+          },
+        },
+        { status: 400 }
+      );
+    }
+
+    // Prepare the update data
+    const updateData = {
+      name: data.name,
+      type: data.type,
+      promptDesc: data.promptDesc,
+      description: data.description || null,
+      imageUrl: data.imageUrl || null,
+      orginal_Image: data.orginal_Image || null,
+      updatedAt: new Date(),
+    };
+
     const [updatedPrompt] = await db
       .update(PromptTable)
-      .set({
-        ...data,
-        updatedAt: new Date(),
-      })
+      .set(updateData)
       .where(eq(PromptTable.id, data.id))
       .returning();
 
+    if (!updatedPrompt) {
+      return NextResponse.json({ error: "Prompt not found" }, { status: 404 });
+    }
+
     return NextResponse.json(updatedPrompt);
   } catch (error) {
+    console.error("Error updating prompt:", error);
     return NextResponse.json(
-      { error: "Failed to update prompt" },
+      {
+        error: "Failed to update prompt",
+        details: error instanceof Error ? error.message : "Unknown error",
+      },
       { status: 500 }
     );
   }
