@@ -47,32 +47,12 @@ export function ResultSection({
     if (!result) return;
 
     try {
-      // Create a Blob from the base64 data
-      const byteString = atob(result);
-      const ab = new ArrayBuffer(byteString.length);
-      const ia = new Uint8Array(ab);
-
-      for (let i = 0; i < byteString.length; i++) {
-        ia[i] = byteString.charCodeAt(i);
-      }
-
-      const blob = new Blob([ab], { type: "image/png" });
-
-      // Create a download URL for the blob
-      const url = URL.createObjectURL(blob);
-
-      // Create and trigger the download link
       const link = document.createElement("a");
-      link.href = url;
+      link.href = `data:image/png;base64,${result}`;
       link.download = `${promptName}-generated.png`;
       document.body.appendChild(link);
       link.click();
-
-      // Clean up
-      setTimeout(() => {
-        document.body.removeChild(link);
-        URL.revokeObjectURL(url);
-      }, 100);
+      document.body.removeChild(link);
 
       toast.success("Image downloaded successfully");
     } catch (error) {
