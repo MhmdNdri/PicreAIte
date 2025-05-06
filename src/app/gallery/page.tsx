@@ -161,14 +161,6 @@ export default function GalleryPage() {
   const queryClient = useQueryClient();
 
   // Show retention policy notification on mount
-  useEffect(() => {
-    toast.info(
-      "Your images will be automatically deleted 24 hours after their creation",
-      {
-        duration: 5000,
-      }
-    );
-  }, []);
 
   const { data, isLoading, error } = useQuery({
     queryKey: ["gallery"],
