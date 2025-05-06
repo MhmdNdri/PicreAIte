@@ -3,7 +3,7 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useAuth } from "@clerk/nextjs";
 import { useRouter } from "next/navigation";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import Image from "next/image";
 import { Download, Loader2, Trash2, X } from "lucide-react";
 import { toast } from "sonner";
@@ -16,6 +16,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 interface GalleryImage {
   imageUrl: string;
   name?: string;
+  expiresAt: string;
 }
 
 // Function to fetch user's gallery images
@@ -76,6 +77,24 @@ function ImageCard({
   // Function to extract prompt type from file name
   const promptType = extractPromptType(image.name);
 
+  // Calculate time remaining
+  const expiresAt = new Date(image.expiresAt);
+  const now = new Date();
+  const timeRemaining = expiresAt.getTime() - now.getTime();
+  const hoursRemaining = Math.floor(timeRemaining / (1000 * 60 * 60));
+  const minutesRemaining = Math.floor(
+    (timeRemaining % (1000 * 60 * 60)) / (1000 * 60)
+  );
+
+  // Format creation time
+  const createdAt = new Date(image.createdAt);
+  const formattedCreatedAt = createdAt.toLocaleDateString(undefined, {
+    month: "short",
+    day: "numeric",
+    hour: "2-digit",
+    minute: "2-digit",
+  });
+
   return (
     <Card
       key={image.id}
@@ -115,11 +134,19 @@ function ImageCard({
               )}
             </Button>
           </div>
+          {/* Expiration overlay */}
+          <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/60 to-transparent p-3">
+            <div className="flex items-center justify-between text-white">
+              <span className="text-xs font-medium">{promptType}</span>
+              <span className="text-xs bg-black/30 px-2 py-0.5 rounded-full">
+                {hoursRemaining}h {minutesRemaining}m
+              </span>
+            </div>
+          </div>
         </div>
         <div className="p-3">
-          <h3 className="font-medium text-sm truncate">{promptType}</h3>
           <p className="text-muted-foreground text-xs">
-            {new Date(image.createdAt).toLocaleDateString()}
+            Created {formattedCreatedAt}
           </p>
         </div>
       </CardContent>
@@ -132,6 +159,16 @@ export default function GalleryPage() {
   const router = useRouter();
   const [selectedImage, setSelectedImage] = useState<any>(null);
   const queryClient = useQueryClient();
+
+  // Show retention policy notification on mount
+  useEffect(() => {
+    toast.info(
+      "Your images will be automatically deleted 24 hours after their creation",
+      {
+        duration: 5000,
+      }
+    );
+  }, []);
 
   const { data, isLoading, error } = useQuery({
     queryKey: ["gallery"],
@@ -250,8 +287,13 @@ export default function GalleryPage() {
   };
 
   return (
-    <div className="container mx-auto px-4 py-12">
-      <h1 className="text-3xl font-bold mb-8">Your Gallery</h1>
+    <div className="container mx-auto px-8 py-12">
+      <div className="flex justify-between items-center mb-8">
+        <h1 className="text-3xl font-bold">Your Gallery</h1>
+        <div className="text-sm text-muted-foreground bg-muted/30 px-3 py-1.5 rounded-full">
+          Images expire 24 hours after creation
+        </div>
+      </div>
 
       {/* Image grid */}
       <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">

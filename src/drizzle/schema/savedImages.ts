@@ -1,5 +1,6 @@
 import { pgTable, serial, text, timestamp, varchar } from "drizzle-orm/pg-core";
 import { UserTable } from "./users";
+import { sql } from "drizzle-orm";
 
 export const savedImages = pgTable("saved_images", {
   id: serial("id").primaryKey(),
@@ -11,6 +12,9 @@ export const savedImages = pgTable("saved_images", {
   name: varchar("name", { length: 255 }).notNull(),
   imageType: varchar("image_type", { length: 50 }),
   createdAt: timestamp("created_at").defaultNow(),
+  expiresAt: timestamp("expires_at")
+    .notNull()
+    .default(sql`NOW() + INTERVAL '24 hours'`),
 });
 
 export type SavedImage = typeof savedImages.$inferSelect;
