@@ -47,13 +47,19 @@ export function ResultSection({
     if (!result) return;
 
     try {
-      const link = document.createElement("a");
-      link.href = `data:image/png;base64,${result}`;
-      link.download = `${promptName}-generated.png`;
-      document.body.appendChild(link);
-      link.click();
-      document.body.removeChild(link);
+      const loadingToast = toast.loading("Downloading image...");
 
+      // Generate a unique ID for the filename
+      const uniqueId = Math.random().toString(36).substring(2, 10);
+      const timestamp = new Date().toISOString().split("T")[0];
+      const fileName = `${promptName}_${timestamp}_${uniqueId}.png`;
+
+      const a = document.createElement("a");
+      a.href = `data:image/png;base64,${result}`;
+      a.download = fileName;
+      a.click();
+
+      toast.dismiss(loadingToast);
       toast.success("Image downloaded successfully");
     } catch (error) {
       console.error("Error downloading image:", error);

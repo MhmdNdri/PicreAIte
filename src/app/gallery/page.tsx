@@ -13,6 +13,11 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 
+interface GalleryImage {
+  imageUrl: string;
+  name?: string;
+}
+
 // Function to fetch user's gallery images
 async function fetchGalleryImages() {
   const response = await fetch("/api/gallery");
@@ -207,39 +212,40 @@ export default function GalleryPage() {
     }
   };
 
-  const handleDownloadImage = (e: React.MouseEvent, image: any) => {
-    e.stopPropagation(); // Prevent interference with other handlers
+  const handleDownloadImage = async (
+    e: React.MouseEvent,
+    image: GalleryImage
+  ) => {
+    e.stopPropagation();
 
     try {
-      // Fetch the image as a blob
-      fetch(image.imageUrl)
-        .then((response) => response.blob())
-        .then((blob) => {
-          // Create a temporary URL for the blob
-          const url = URL.createObjectURL(blob);
+      const loadingToast = toast.loading("Downloading image...");
 
-          // Create download link and trigger click
-          const link = document.createElement("a");
-          link.href = url;
-          link.download = image.name || "downloaded-image.png";
-          document.body.appendChild(link);
-          link.click();
+      // Fetch the image first
+      const response = await fetch(image.imageUrl);
+      const blob = await response.blob();
+      const url = window.URL.createObjectURL(blob);
 
-          // Clean up
-          setTimeout(() => {
-            document.body.removeChild(link);
-            URL.revokeObjectURL(url);
-          }, 100);
+      // Generate a unique ID for the filename
+      const uniqueId = Math.random().toString(36).substring(2, 10);
+      const timestamp = new Date().toISOString().split("T")[0];
+      const fileName = `${image.name || "image"}_${timestamp}_${uniqueId}.png`;
 
-          toast.success("Image downloaded successfully");
-        })
-        .catch((error) => {
-          console.error("Error downloading image:", error);
-          toast.error("Failed to download image");
-        });
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = fileName;
+      a.click();
+
+      // Cleanup
+      window.URL.revokeObjectURL(url);
+
+      toast.dismiss(loadingToast);
+      toast.success("Image downloaded successfully");
     } catch (error) {
-      console.error("Error initiating download:", error);
-      toast.error("Failed to download image");
+      console.error("Error downloading image:", error);
+      toast.error(
+        error instanceof Error ? error.message : "Failed to download image"
+      );
     }
   };
 
