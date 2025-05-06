@@ -189,6 +189,7 @@ export function Navbar() {
           <Link
             href="/"
             className="flex items-center gap-2 px-3 py-2 rounded-md text-gray-700 dark:text-[#E6F0FA] hover:font-bold transition-all duration-300"
+            onClick={() => setIsOpen(false)}
           >
             <Home className="h-5 w-5" />
             Home
@@ -198,6 +199,7 @@ export function Navbar() {
               <Link
                 href="/playground"
                 className="flex items-center gap-2 px-3 py-2 rounded-md text-gray-700 dark:text-[#E6F0FA] hover:font-bold transition-all duration-300"
+                onClick={() => setIsOpen(false)}
               >
                 <Palette className="h-5 w-5" />
                 Playground
@@ -205,6 +207,7 @@ export function Navbar() {
               <Link
                 href="/gallery"
                 className="flex items-center gap-2 px-3 py-2 rounded-md text-gray-700 dark:text-[#E6F0FA] hover:font-bold transition-all duration-300"
+                onClick={() => setIsOpen(false)}
               >
                 <Image className="h-5 w-5" />
                 Gallery
@@ -212,6 +215,7 @@ export function Navbar() {
               <Link
                 href="/api-key"
                 className="flex items-center gap-2 px-3 py-2 rounded-md text-gray-700 dark:text-[#E6F0FA] hover:font-bold transition-all duration-300"
+                onClick={() => setIsOpen(false)}
               >
                 <Key className="h-5 w-5" />
                 API Key
