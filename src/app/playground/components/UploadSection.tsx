@@ -134,8 +134,9 @@ export function UploadSection({
             className={`border-2 border-dashed border-gray-300 dark:border-gray-700 rounded-lg ${
               isMobile ? "p-4" : "p-10"
             } text-center cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-800/50 transition-colors`}
-            onDragOver={handleDragOver}
-            onDrop={handleDrop}
+            onDragOver={!isMobile ? handleDragOver : undefined}
+            onDrop={!isMobile ? handleDrop : undefined}
+            style={{ touchAction: "pan-y" }}
           >
             <input
               type="file"

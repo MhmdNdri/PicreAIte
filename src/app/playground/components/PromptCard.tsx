@@ -49,7 +49,11 @@ export function PromptCard({
         value={position}
         onChange={(e) => setPosition(parseInt(e.target.value))}
         className="absolute inset-0 z-50 w-full h-full opacity-0 cursor-ew-resize"
-        style={{ touchAction: "none" }}
+        style={{
+          touchAction: "pan-y",
+          WebkitAppearance: "none",
+          appearance: "none",
+        }}
         aria-label="Adjust comparison slider"
       />
 

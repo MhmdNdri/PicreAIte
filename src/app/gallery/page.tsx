@@ -100,6 +100,7 @@ function ImageCard({
       key={image.id}
       className="overflow-hidden group cursor-pointer transition-all hover:shadow-md"
       onClick={() => onImageClick(image)}
+      style={{ touchAction: "pan-y" }}
     >
       <CardContent className="p-0">
         <div className="relative aspect-square">
