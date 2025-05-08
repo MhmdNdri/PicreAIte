@@ -249,8 +249,6 @@ export default function GalleryPage() {
     e.stopPropagation();
 
     try {
-      const loadingToast = toast.loading("Downloading image...");
-
       // Fetch the image first
       const response = await fetch(image.imageUrl);
       const blob = await response.blob();
@@ -269,10 +267,8 @@ export default function GalleryPage() {
       // Cleanup
       window.URL.revokeObjectURL(url);
 
-      toast.dismiss(loadingToast);
       toast.success("Image downloaded successfully");
     } catch (error) {
-      console.error("Error downloading image:", error);
       toast.error(
         error instanceof Error ? error.message : "Failed to download image"
       );

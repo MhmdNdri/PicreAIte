@@ -65,8 +65,6 @@ export function ResultSection({
     if (!result) return;
 
     try {
-      const loadingToast = toast.loading("Downloading image...");
-
       // Generate a unique ID for the filename
       const uniqueId = Math.random().toString(36).substring(2, 10);
       const timestamp = new Date().toISOString().split("T")[0];
@@ -76,11 +74,7 @@ export function ResultSection({
       a.href = `data:image/png;base64,${result}`;
       a.download = fileName;
       a.click();
-
-      toast.dismiss(loadingToast);
-      toast.success("Image downloaded successfully");
     } catch (error) {
-      console.error("Error downloading image:", error);
       toast.error("Failed to download image");
     }
   };
