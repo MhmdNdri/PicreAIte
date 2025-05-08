@@ -135,7 +135,7 @@ export function Navbar() {
                 </button>
               </SignInButton>
             ) : (
-              <div className="mr-4">
+              <div className="mr-4 mt-2">
                 <ProfileMenu />
               </div>
             )}
@@ -228,11 +228,7 @@ export function Navbar() {
                 Sign In
               </button>
             </SignInButton>
-          ) : (
-            <div className="px-3 py-2">
-              <ProfileMenu />
-            </div>
-          )}
+          ) : null}
         </div>
       </div>
     </nav>
