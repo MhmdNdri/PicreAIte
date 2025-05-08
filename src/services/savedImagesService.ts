@@ -1,6 +1,7 @@
 import { db } from "@/drizzle/db";
 import { savedImages } from "@/drizzle/schema";
 import { eq, and, lt, inArray } from "drizzle-orm";
+import { UploadThingService } from "./uploadthingService";
 
 export class SavedImagesService {
   static async saveImage(
@@ -69,6 +70,20 @@ export class SavedImagesService {
 
   static async deleteImage(id: number, userId: string) {
     try {
+      // First get the image to get its file key
+      const [image] = await db
+        .select()
+        .from(savedImages)
+        .where(and(eq(savedImages.id, id), eq(savedImages.userId, userId)));
+
+      if (!image) {
+        throw new Error("Image not found");
+      }
+
+      // Delete from UploadThing first
+      await UploadThingService.deleteFile(image.imageKey);
+
+      // Then delete from database
       const result = await db
         .delete(savedImages)
         .where(and(eq(savedImages.id, id), eq(savedImages.userId, userId)));
@@ -82,6 +97,27 @@ export class SavedImagesService {
   static async cleanupExpiredImages() {
     try {
       const now = new Date();
+
+      // Get all expired images first
+      const expiredImages = await db
+        .select()
+        .from(savedImages)
+        .where(lt(savedImages.expiresAt, now));
+
+      // Delete from UploadThing
+      for (const image of expiredImages) {
+        try {
+          await UploadThingService.deleteFile(image.imageKey);
+        } catch (error) {
+          console.error(
+            `Failed to delete file from UploadThing: ${image.imageKey}`,
+            error
+          );
+          // Continue with other files even if one fails
+        }
+      }
+
+      // Delete from database
       const result = await db
         .delete(savedImages)
         .where(lt(savedImages.expiresAt, now));

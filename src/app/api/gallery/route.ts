@@ -43,10 +43,18 @@ export async function DELETE(request: NextRequest) {
       );
     }
 
-    // Delete the image from the database
-    await SavedImagesService.deleteImage(parseInt(imageId), userId);
-
-    return NextResponse.json({ success: true });
+    try {
+      // Delete the image from both database and UploadThing
+      await SavedImagesService.deleteImage(parseInt(imageId), userId);
+      return NextResponse.json({ success: true });
+    } catch (error) {
+      // If the error is about the image not being found, return 404
+      if (error instanceof Error && error.message === "Image not found") {
+        return NextResponse.json({ error: "Image not found" }, { status: 404 });
+      }
+      // For other errors, return 500
+      throw error;
+    }
   } catch (error) {
     console.error("Error deleting gallery image:", error);
     return NextResponse.json(
