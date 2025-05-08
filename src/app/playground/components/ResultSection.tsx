@@ -9,6 +9,16 @@ import { Skeleton } from "@/components/ui/skeleton";
 
 export type SizeOption = "1024x1024" | "1536x1024" | "1024x1536";
 
+interface Usage {
+  input_tokens: number;
+  input_tokens_details: {
+    image_tokens: number;
+    text_tokens: number;
+  };
+  output_tokens: number;
+  total_tokens: number;
+}
+
 interface ResultSectionProps {
   result: string | null;
   isLoading: boolean;
@@ -17,7 +27,14 @@ interface ResultSectionProps {
   promptName: string;
   onReset: () => void;
   isMobile?: boolean;
+  usage?: Usage;
 }
+
+const calculateCost = (usage: Usage): number => {
+  const inputCost = (usage.input_tokens / 1_000_000) * 10;
+  const outputCost = (usage.output_tokens / 1_000_000) * 40;
+  return (inputCost + outputCost) * 1.35;
+};
 
 export function ResultSection({
   result,
@@ -27,6 +44,7 @@ export function ResultSection({
   promptName,
   onReset,
   isMobile = false,
+  usage,
 }: ResultSectionProps) {
   const [imageLoaded, setImageLoaded] = useState(false);
 
@@ -118,6 +136,11 @@ export function ResultSection({
               <div className="absolute top-2 left-2 bg-[#00F5FF] text-[#1A1E33] text-xs font-medium px-2 py-1 rounded-md shadow-sm z-20">
                 Transformed
               </div>
+              {usage && (
+                <div className="absolute top-2 right-2 bg-[#1A1E33] text-[#00F5FF] text-xs font-medium px-2 py-1 rounded-md shadow-sm z-20">
+                  Cost: ${calculateCost(usage).toFixed(4)}
+                </div>
+              )}
             </>
           )}
         </div>

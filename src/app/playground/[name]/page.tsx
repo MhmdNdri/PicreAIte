@@ -171,6 +171,7 @@ export default function PromptPage({
               result={data?.data?.[0]?.b64_json || null}
               error={error?.message || null}
               onReset={handleReset}
+              usage={data?.usage}
             />
 
             {/* Mobile layout */}
@@ -188,6 +189,7 @@ export default function PromptPage({
               result={data?.data?.[0]?.b64_json || null}
               error={error?.message || null}
               onReset={handleReset}
+              usage={data?.usage}
             />
           </CardContent>
         </Card>

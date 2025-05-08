@@ -22,6 +22,15 @@ interface DesktopLayoutProps {
   result: string | null;
   error: string | null;
   onReset: () => void;
+  usage?: {
+    input_tokens: number;
+    input_tokens_details: {
+      image_tokens: number;
+      text_tokens: number;
+    };
+    output_tokens: number;
+    total_tokens: number;
+  };
 }
 
 export function DesktopLayout({
@@ -38,6 +47,7 @@ export function DesktopLayout({
   result,
   error,
   onReset,
+  usage,
 }: DesktopLayoutProps) {
   return (
     <div className="hidden md:block p-6 border-b border-gray-100 dark:border-gray-800">
@@ -91,6 +101,7 @@ export function DesktopLayout({
             size={size}
             promptName={prompt.name}
             onReset={onReset}
+            usage={usage}
           />
         </div>
       </div>

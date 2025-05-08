@@ -22,6 +22,15 @@ interface MobileLayoutProps {
   result: string | null;
   error: string | null;
   onReset: () => void;
+  usage?: {
+    input_tokens: number;
+    input_tokens_details: {
+      image_tokens: number;
+      text_tokens: number;
+    };
+    output_tokens: number;
+    total_tokens: number;
+  };
 }
 
 export function MobileLayout({
@@ -38,6 +47,7 @@ export function MobileLayout({
   result,
   error,
   onReset,
+  usage,
 }: MobileLayoutProps) {
   return (
     <div className="md:hidden px-4 py-4 space-y-6">
@@ -88,6 +98,7 @@ export function MobileLayout({
         promptName={prompt.name}
         onReset={onReset}
         isMobile={true}
+        usage={usage}
       />
     </div>
   );
