@@ -1,30 +1,80 @@
 "use client";
 
-import { useCallback, useState } from "react";
+import { useState, useCallback, useMemo } from "react";
 import { Button } from "@/components/ui/button";
 import { Loader2 } from "lucide-react";
 import { useUploadThing } from "@/providers/uploadthing-provider";
 import { toast } from "sonner";
+import heicConvert from "heic-convert";
 
 interface UploadImageButtonProps {
-  imageData: string; // Base64 image data
+  imageData: string;
   onUploadComplete: (url: string, key: string) => void;
   className?: string;
-  promptType?: string; // Add prompt type
+  promptType?: string;
 }
+
+// Helper function to extract mime type from base64 data
+const extractMimeType = (dataPart: string | undefined): string => {
+  if (!dataPart?.includes(":")) return "image/png";
+
+  const mimeParts = dataPart.split(":");
+  if (mimeParts.length <= 1 || !mimeParts[1]?.includes(";")) return "image/png";
+
+  const mimeType = mimeParts[1].split(";")[0];
+  return mimeType || "image/png";
+};
+
+// Helper function to convert base64 to array buffer
+const base64ToArrayBuffer = (base64: string): ArrayBuffer => {
+  const byteString = window.atob(base64);
+  const arrayBuffer = new ArrayBuffer(byteString.length);
+  const uint8Array = new Uint8Array(arrayBuffer);
+
+  for (let i = 0; i < byteString.length; i++) {
+    uint8Array[i] = byteString.charCodeAt(i);
+  }
+
+  return arrayBuffer;
+};
+
+// Helper function to generate file name
+const generateFileName = (promptType: string): string => {
+  const dateStr = new Date().toISOString().split("T")[0];
+  const uniqueId = Math.random().toString(36).substring(2, 10);
+  return `${promptType}_${dateStr}_${uniqueId}.png`;
+};
 
 export function UploadImageButton({
   imageData,
   onUploadComplete,
   className,
-  promptType = "image", // Default to "image" if not provided
+  promptType = "image",
 }: UploadImageButtonProps) {
   const [isUploading, setIsUploading] = useState(false);
+  const [isConverting, setIsConverting] = useState(false);
 
-  // Initialize the uploadthing client
   const { startUpload, isUploading: isUploadingUT } = useUploadThing(
     "generatedImageUploader"
   );
+
+  // Memoize the button state
+  const buttonState = useMemo(() => {
+    if (isConverting) return { text: "Converting...", loading: true };
+    if (isUploading || isUploadingUT)
+      return { text: "Saving...", loading: true };
+    return { text: "Save to Gallery", loading: false };
+  }, [isConverting, isUploading, isUploadingUT]);
+
+  const convertHeicToPng = useCallback(async (blob: Blob): Promise<Blob> => {
+    const buffer = await blob.arrayBuffer();
+    const pngBuffer = await heicConvert({
+      buffer: Buffer.from(buffer),
+      format: "PNG",
+      quality: 1,
+    });
+    return new Blob([pngBuffer], { type: "image/png" });
+  }, []);
 
   const handleUpload = useCallback(async () => {
     if (!imageData || !imageData.includes(",")) {
@@ -34,102 +84,61 @@ export function UploadImageButton({
 
     try {
       setIsUploading(true);
-
-      // Convert base64 to Blob
-      const parts = imageData.split(",");
-      if (parts.length !== 2) {
-        toast.error("Invalid image data format");
-        return;
-      }
-
-      // Make sure we have valid parts
-      const dataPart = parts[1];
-
-      // Safely extract mime type
-      let mimePart = "image/png"; // Default mime type
-      if (parts[0] && parts[0].includes(":")) {
-        const mimeParts = parts[0].split(":");
-        if (
-          mimeParts.length > 1 &&
-          mimeParts[1] &&
-          mimeParts[1].includes(";")
-        ) {
-          const mimeType = mimeParts[1].split(";")[0];
-          if (mimeType) {
-            mimePart = mimeType;
-          }
-        }
-      }
+      const [header, dataPart] = imageData.split(",");
 
       if (!dataPart) {
         toast.error("Invalid image data format");
         return;
       }
 
-      const byteString = window.atob(dataPart);
-      const ab = new ArrayBuffer(byteString.length);
-      const ia = new Uint8Array(ab);
+      const mimePart = extractMimeType(header);
+      const arrayBuffer = base64ToArrayBuffer(dataPart);
+      const fileName = generateFileName(promptType);
 
-      for (let i = 0; i < byteString.length; i++) {
-        ia[i] = byteString.charCodeAt(i);
-      }
+      let blob = new Blob([arrayBuffer], { type: mimePart });
+      let file = new File([blob], fileName, { type: "image/png" });
 
-      // Generate current date in YYYY-MM-DD format
-      const now = new Date();
-      const dateStr = now.toISOString().split("T")[0];
-
-      // Generate a unique ID for this image
-      const uniqueId = Math.random().toString(36).substring(2, 10);
-
-      // Create a standardized file name: PromptType_Date_UniqueID.png
-      const fileName = `${promptType}_${dateStr}_${uniqueId}.png`;
-
-      const blob = new Blob([ab], { type: mimePart });
-      const file = new File([blob], fileName, {
-        type: "image/png",
-      });
-
-      // Upload the file
-      const uploadResult = await startUpload([file]);
-
-      if (uploadResult && uploadResult.length > 0) {
-        const fileData = uploadResult[0];
-
-        // Check for the response format
+      // Convert HEIC to PNG if needed
+      if (mimePart.includes("heic")) {
         try {
-          if (fileData && fileData.url) {
-            toast.success("Image saved to gallery");
-            onUploadComplete(fileData.url, fileData.key);
-          } else {
-            toast.error("Upload response format unexpected");
-          }
-        } catch (err) {
-          console.error("Error processing upload result:", err);
-          toast.error("Error processing upload result");
+          setIsConverting(true);
+          blob = await convertHeicToPng(blob);
+          file = new File([blob], fileName, { type: "image/png" });
+        } catch (error) {
+          console.error("Error converting HEIC to PNG:", error);
+          toast.error("Failed to convert HEIC image");
+          return;
+        } finally {
+          setIsConverting(false);
         }
       }
+
+      const uploadResult = await startUpload([file]);
+
+      if (!uploadResult?.[0]?.url) {
+        toast.error("Upload response format unexpected");
+        return;
+      }
+
+      const { url, key } = uploadResult[0];
+      toast.success("Image saved to gallery");
+      onUploadComplete(url, key);
     } catch (error) {
-      toast.error("Error uploading image");
       console.error("Error uploading image:", error);
+      toast.error("Error uploading image");
     } finally {
       setIsUploading(false);
     }
-  }, [imageData, startUpload, onUploadComplete, promptType]);
+  }, [imageData, startUpload, onUploadComplete, promptType, convertHeicToPng]);
 
   return (
     <Button
       onClick={handleUpload}
-      disabled={isUploading || isUploadingUT}
+      disabled={buttonState.loading}
       className={className}
     >
-      {isUploading || isUploadingUT ? (
-        <>
-          <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-          Saving...
-        </>
-      ) : (
-        "Save to Gallery"
-      )}
+      {buttonState.loading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+      {buttonState.text}
     </Button>
   );
 }

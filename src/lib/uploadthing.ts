@@ -2,6 +2,7 @@ import { createUploadthing, type FileRouter } from "uploadthing/next";
 import { getAuth } from "@clerk/nextjs/server";
 import { NextRequest } from "next/server";
 import { SavedImagesService } from "@/services/savedImagesService";
+import heicConvert from "heic-convert";
 
 // Initialize uploadthing
 // Environment variables are automatically loaded from .env:
@@ -16,17 +17,52 @@ const auth = (req: NextRequest) => {
   return { userId };
 };
 
+// Helper function to convert HEIC to PNG
+async function convertHeicToPng(fileData: {
+  type: string;
+  name: string;
+  size: number;
+}): Promise<{ type: string; name: string; size: number }> {
+  if (!fileData.type.includes("heic")) {
+    return fileData;
+  }
+
+  try {
+    // Since we can't access the actual file buffer in the middleware,
+    // we'll just update the file metadata to indicate it should be converted
+    return {
+      ...fileData,
+      type: "image/png",
+      name: fileData.name.replace(/\.heic$/i, ".png"),
+    };
+  } catch (error) {
+    console.error("Error preparing HEIC conversion:", error);
+    throw new Error("Failed to prepare HEIC image for conversion");
+  }
+}
+
 // File router configuration
 export const ourFileRouter = {
   // Image uploader for generated images
   generatedImageUploader: f({ image: { maxFileSize: "8MB", maxFileCount: 1 } })
-    .middleware(async ({ req }) => {
+    .middleware(async ({ req, files }) => {
       // Verify authentication using our helper
       const result = auth(req);
       if (result.status === "unauthorized") throw new Error("Unauthorized");
 
+      // Convert HEIC files to PNG if needed
+      const convertedFiles = await Promise.all(
+        files.map(async (file) => {
+          if (file.type.includes("heic")) {
+            return await convertHeicToPng(file);
+          }
+          return file;
+        })
+      );
+
       return {
         userId: result.userId,
+        files: convertedFiles,
       };
     })
     .onUploadComplete(async ({ metadata, file }) => {

@@ -1,4 +1,4 @@
-import { Upload } from "lucide-react";
+import { Upload, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { ImagePreview } from "./ImagePreview";
 import { Label } from "@/components/ui/label";
@@ -10,6 +10,8 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import heicConvert from "heic-convert";
+import { useState, useCallback } from "react";
 
 export type QualityOption = "low" | "medium" | "high";
 export type SizeOption = "1024x1024" | "1536x1024" | "1024x1536";
@@ -30,6 +32,38 @@ interface UploadSectionProps {
 const MAX_IMAGES = 1;
 const MAX_FILE_SIZE = 4 * 1024 * 1024; // 4MB in bytes
 
+// Helper function to check file size
+const isFileSizeValid = (file: File): boolean => {
+  if (file.size > MAX_FILE_SIZE) {
+    toast.error("File too large", {
+      description: "Please select images smaller than 4MB",
+      icon: "❌",
+    });
+    return false;
+  }
+  return true;
+};
+
+// Helper function to convert HEIC to PNG
+const convertHeicToPng = async (file: File): Promise<File | null> => {
+  try {
+    const buffer = await file.arrayBuffer();
+    const pngBuffer = await heicConvert({
+      buffer: Buffer.from(buffer),
+      format: "PNG",
+      quality: 1,
+    });
+
+    const blob = new Blob([pngBuffer], { type: "image/png" });
+    const newFileName = file.name.replace(/\.heic$/i, ".png");
+    return new File([blob], newFileName, { type: "image/png" });
+  } catch (error) {
+    console.error("Error converting HEIC to PNG:", error);
+    toast.error("Failed to convert HEIC image");
+    return null;
+  }
+};
+
 export function UploadSection({
   images,
   onImagesChange,
@@ -42,82 +76,142 @@ export function UploadSection({
   isLoading,
   isMobile = false,
 }: UploadSectionProps) {
-  const handleDragOver = (e: React.DragEvent) => {
+  const [isConverting, setIsConverting] = useState(false);
+
+  const handleDragOver = useCallback((e: React.DragEvent) => {
     e.preventDefault();
     e.stopPropagation();
-  };
+  }, []);
 
-  const handleDrop = (e: React.DragEvent) => {
-    e.preventDefault();
-    e.stopPropagation();
+  const handleDrop = useCallback(
+    (e: React.DragEvent) => {
+      e.preventDefault();
+      e.stopPropagation();
 
-    if (e.dataTransfer.files && e.dataTransfer.files.length > 0) {
+      if (!e.dataTransfer.files?.length) return;
+
       const filesArray = Array.from(e.dataTransfer.files).filter((file) =>
         file.type.startsWith("image/")
       );
 
-      if (filesArray.length) {
-        const totalImages = images.length + filesArray.length;
-        if (totalImages > MAX_IMAGES) {
-          toast.error(`You can only upload up to ${MAX_IMAGES} images`, {
-            description: "Please remove some images first.",
-            icon: "❌",
-          });
-          return;
-        }
+      if (!filesArray.length) return;
 
-        // Check file sizes
-        const oversizedFiles = filesArray.filter(
-          (file) => file.size > MAX_FILE_SIZE
-        );
-        if (oversizedFiles.length > 0) {
-          toast.error("File too large", {
-            description: "Please select images smaller than 4MB",
-            icon: "❌",
-          });
-          return;
-        }
-
-        onImagesChange([...images, ...filesArray]);
-      }
-    }
-  };
-
-  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    if (e.target.files && e.target.files.length > 0) {
-      const filesArray = Array.from(e.target.files);
       const totalImages = images.length + filesArray.length;
       if (totalImages > MAX_IMAGES) {
         toast.error(`You can only upload up to ${MAX_IMAGES} images`, {
           description: "Please remove some images first.",
           icon: "❌",
         });
-        // Reset the input
-        e.target.value = "";
         return;
       }
 
-      // Check file sizes
-      const oversizedFiles = filesArray.filter(
-        (file) => file.size > MAX_FILE_SIZE
-      );
-      if (oversizedFiles.length > 0) {
-        toast.error("File too large", {
-          description: "Please select images smaller than 4MB",
+      const validFiles = filesArray.filter(isFileSizeValid);
+      if (validFiles.length > 0) {
+        onImagesChange([...images, ...validFiles]);
+      }
+    },
+    [images, onImagesChange]
+  );
+
+  const processFiles = useCallback(async (files: File[]): Promise<File[]> => {
+    const processedFiles = await Promise.all(
+      files.map(async (file) => {
+        if (!isFileSizeValid(file)) return null;
+
+        if (file.type.includes("heic")) {
+          return await convertHeicToPng(file);
+        }
+        return file;
+      })
+    );
+
+    return processedFiles.filter((file): file is File => file !== null);
+  }, []);
+
+  const handleFileChange = useCallback(
+    async (e: React.ChangeEvent<HTMLInputElement>) => {
+      if (!e.target.files?.length) return;
+
+      const filesArray = Array.from(e.target.files);
+      const totalImages = images.length + filesArray.length;
+
+      if (totalImages > MAX_IMAGES) {
+        toast.error(`You can only upload up to ${MAX_IMAGES} images`, {
+          description: "Please remove some images first.",
           icon: "❌",
         });
-        // Reset the input
-        e.target.value = "";
         return;
       }
 
-      onImagesChange([...images, ...filesArray]);
-      // Reset the input after successful upload
-      e.target.value = "";
-    }
-  };
+      const hasHeicFiles = filesArray.some((file) =>
+        file.type.includes("heic")
+      );
+      if (hasHeicFiles) {
+        setIsConverting(true);
+      }
+
+      try {
+        const validFiles = await processFiles(filesArray);
+        if (validFiles.length > 0) {
+          onImagesChange([...images, ...validFiles]);
+        }
+      } finally {
+        setIsConverting(false);
+      }
+    },
+    [images, onImagesChange, processFiles]
+  );
 
   const remainingSlots = MAX_IMAGES - images.length;
+
+  // Loading overlay component
+  const LoadingOverlay = useCallback(
+    () => (
+      <div className="absolute inset-0 bg-background/80 backdrop-blur-sm flex items-center justify-center z-10">
+        <div className="flex flex-col items-center gap-2">
+          <Loader2 className="h-8 w-8 animate-spin text-primary" />
+          <p className="text-sm text-muted-foreground">
+            Converting HEIC image...
+          </p>
+        </div>
+      </div>
+    ),
+    []
+  );
+
+  // Upload area content component
+  const UploadAreaContent = useCallback(
+    ({ isMobile }: { isMobile: boolean }) => (
+      <div className="flex flex-col items-center">
+        {isMobile ? (
+          <>
+            <Upload className="h-8 w-8 text-gray-400 mb-2" />
+            <p className="text-xs text-muted-foreground">
+              {images.length > 0
+                ? "Tap to change photo"
+                : "Tap to upload photo"}
+            </p>
+          </>
+        ) : (
+          <>
+            <div className="w-16 h-16 rounded-full bg-gray-100 dark:bg-gray-800 flex items-center justify-center mb-4">
+              <Upload className="h-8 w-8 text-gray-400" />
+            </div>
+            <p className="text-sm font-medium text-muted-foreground mb-1">
+              {images.length > 0
+                ? "Drop a new photo here to replace"
+                : "Drop your image here"}
+            </p>
+            <p className="text-xs text-muted-foreground">or click to browse</p>
+            <p className="mt-2 text-xs text-muted-foreground">
+              Upload your image (JPG, PNG, WebP, HEIC)
+            </p>
+          </>
+        )}
+      </div>
+    ),
+    [images.length]
+  );
 
   return (
     <div className="space-y-6">
@@ -129,56 +223,34 @@ export function UploadSection({
           {images.length > 0 && `(${images.length}/${MAX_IMAGES})`}
         </h3>
 
-        {remainingSlots > 0 ? (
+        {remainingSlots > 0 && (
           <div
             className={`border-2 border-dashed border-gray-300 dark:border-gray-700 rounded-lg ${
               isMobile ? "p-4" : "p-10"
-            } text-center cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-800/50 transition-colors`}
+            } text-center cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-800/50 transition-colors relative`}
             onDragOver={!isMobile ? handleDragOver : undefined}
             onDrop={!isMobile ? handleDrop : undefined}
             style={{ touchAction: "pan-y" }}
           >
+            {isConverting && <LoadingOverlay />}
             <input
               type="file"
               accept="image/*"
               onChange={handleFileChange}
               className="hidden"
               id={isMobile ? "mobile-image" : "desktop-image"}
+              disabled={isConverting}
             />
             <label
               htmlFor={isMobile ? "mobile-image" : "desktop-image"}
-              className="cursor-pointer block"
+              className={`cursor-pointer block ${
+                isConverting ? "pointer-events-none" : ""
+              }`}
             >
-              {isMobile ? (
-                <div className="flex flex-col items-center justify-center">
-                  <Upload className="h-8 w-8 text-gray-400 mb-2" />
-                  <p className="text-xs text-muted-foreground">
-                    {images.length > 0
-                      ? "Tap to change photo"
-                      : "Tap to upload photo"}
-                  </p>
-                </div>
-              ) : (
-                <div className="flex flex-col items-center">
-                  <div className="w-16 h-16 rounded-full bg-gray-100 dark:bg-gray-800 flex items-center justify-center mb-4">
-                    <Upload className="h-8 w-8 text-gray-400" />
-                  </div>
-                  <p className="text-sm font-medium text-muted-foreground mb-1">
-                    {images.length > 0
-                      ? "Drop a new photo here to replace"
-                      : "Drop your image here"}
-                  </p>
-                  <p className="text-xs text-muted-foreground">
-                    or click to browse
-                  </p>
-                  <p className="mt-2 text-xs text-muted-foreground">
-                    Upload your image (JPG, PNG, WebP)
-                  </p>
-                </div>
-              )}
+              <UploadAreaContent isMobile={isMobile} />
             </label>
           </div>
-        ) : null}
+        )}
       </div>
 
       {/* Uploaded images */}
