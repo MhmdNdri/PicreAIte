@@ -9,6 +9,7 @@ interface DesktopLayoutProps {
     type: string;
     description: string | null;
     imageUrl: string | null;
+    orginal_Image: string | null;
   };
   images: File[];
   onImagesChange: (files: File[]) => void;
@@ -55,6 +56,25 @@ export function DesktopLayout({
       <div className="max-w-[1200px] mx-auto">
         {/* Style section - top row */}
         <div className="flex items-start gap-6 mb-8">
+          {/* Original Image */}
+          {prompt.orginal_Image && (
+            <div className="w-[240px] shrink-0">
+              <div className="relative aspect-square rounded-lg overflow-hidden border border-gray-200 dark:border-gray-700">
+                <Image
+                  src={prompt.orginal_Image}
+                  alt="Original"
+                  fill
+                  className="object-cover"
+                  priority
+                />
+                <div className="absolute top-2 left-2 bg-black/50 text-white text-xs font-medium px-2 py-1 rounded">
+                  Original
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* Example Image */}
           <div className="w-[240px] shrink-0">
             <div className="relative aspect-square rounded-lg overflow-hidden border border-gray-200 dark:border-gray-700">
               <Image
@@ -65,10 +85,12 @@ export function DesktopLayout({
                 priority
               />
               <div className="absolute top-2 left-2 bg-black/50 text-white text-xs font-medium px-2 py-1 rounded">
-                Example
+                Transformed
               </div>
             </div>
           </div>
+
+          {/* Description */}
           <div className="flex-1 pt-1">
             <h3 className="text-sm font-semibold mb-2">About This Style</h3>
             <p className="text-sm text-muted-foreground">

@@ -9,6 +9,7 @@ interface MobileLayoutProps {
     type: string;
     description: string | null;
     imageUrl: string | null;
+    orginal_Image: string | null;
   };
   images: File[];
   onImagesChange: (files: File[]) => void;
@@ -51,27 +52,49 @@ export function MobileLayout({
 }: MobileLayoutProps) {
   return (
     <div className="md:hidden px-4 py-4 space-y-6">
-      {/* Prompt preview */}
-      {prompt.imageUrl && (
-        <div className="space-y-2">
-          <div className="relative aspect-square w-full rounded-lg overflow-hidden border border-gray-200 dark:border-gray-700">
-            <Image
-              src={prompt.imageUrl}
-              alt={prompt.name}
-              fill
-              className="object-cover"
-              priority
-            />
-            <div className="absolute top-2 left-2 bg-black/50 text-white text-[10px] px-1.5 py-0.5 rounded">
-              Example
+      {/* Images row */}
+      <div className="grid grid-cols-2 gap-3">
+        {/* Original Image */}
+        {prompt.orginal_Image && (
+          <div>
+            <div className="relative aspect-square w-full rounded-lg overflow-hidden border border-gray-200 dark:border-gray-700">
+              <Image
+                src={prompt.orginal_Image}
+                alt="Original"
+                fill
+                className="object-cover"
+                priority
+              />
+              <div className="absolute top-2 left-2 bg-black/50 text-white text-[10px] px-1.5 py-0.5 rounded">
+                Original
+              </div>
             </div>
           </div>
-          <p className="text-sm text-muted-foreground">
-            {prompt.description ||
-              "Transform your images with this unique style."}
-          </p>
-        </div>
-      )}
+        )}
+
+        {/* Transformed Image */}
+        {prompt.imageUrl && (
+          <div>
+            <div className="relative aspect-square w-full rounded-lg overflow-hidden border border-gray-200 dark:border-gray-700">
+              <Image
+                src={prompt.imageUrl}
+                alt={prompt.name}
+                fill
+                className="object-cover"
+                priority
+              />
+              <div className="absolute top-2 left-2 bg-black/50 text-white text-[10px] px-1.5 py-0.5 rounded">
+                Transformed
+              </div>
+            </div>
+          </div>
+        )}
+      </div>
+
+      {/* Description */}
+      <p className="text-sm text-muted-foreground">
+        {prompt.description || "Transform your images with this unique style."}
+      </p>
 
       {/* Upload section */}
       <div className="w-full">
