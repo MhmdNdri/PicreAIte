@@ -4,7 +4,6 @@ import "./globals.css";
 import { Providers } from "./providers";
 import { Navbar } from "./components/Navbar";
 import { AuthProvider } from "@/lib/auth-context";
-import PageTransition from "@/components/PageTransition";
 import { AOSInit } from "@/components/AOSInit";
 
 const inter = Inter({ subsets: ["latin"] });
@@ -100,6 +99,8 @@ export const metadata: Metadata = {
   },
 };
 
+export const viewTransition = true;
+
 export default function RootLayout({
   children,
 }: {
@@ -113,7 +114,7 @@ export default function RootLayout({
             <AOSInit />
             <Navbar />
             <main className="pt-16 transition-all duration-300">
-              <PageTransition>{children}</PageTransition>
+              {children}
             </main>
           </AuthProvider>
         </Providers>
