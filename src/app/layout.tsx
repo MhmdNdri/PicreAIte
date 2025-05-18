@@ -5,6 +5,7 @@ import { Providers } from "./providers";
 import { Navbar } from "./components/Navbar";
 import { AuthProvider } from "@/lib/auth-context";
 import PageTransition from "@/components/PageTransition";
+import { AOSInit } from "@/components/AOSInit";
 
 const inter = Inter({ subsets: ["latin"] });
 
@@ -109,6 +110,7 @@ export default function RootLayout({
       <body className={inter.className}>
         <Providers>
           <AuthProvider>
+            <AOSInit />
             <Navbar />
             <main className="pt-16 transition-all duration-300">
               <PageTransition>{children}</PageTransition>
