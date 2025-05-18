@@ -23,6 +23,7 @@ import Link from "next/link";
 import { db } from "@/drizzle/db";
 import { PromptTable } from "@/drizzle/schema";
 import { isNull, and, not } from "drizzle-orm";
+import { ShowcaseGallery } from "@/components/ShowcaseGallery";
 
 export default async function Home() {
   const { userId } = await auth();
@@ -46,7 +47,7 @@ export default async function Home() {
     <main className="min-h-screen scroll-smooth bg-gradient-to-b from-background to-muted text-foreground">
       {/* Hero Section */}
       <section
-        className="relative flex min-h-[90vh] flex-col items-center justify-center overflow-hidden px-4 py-16 text-center sm:py-24"
+        className="relative flex min-h-[calc(100dvh-4rem)] flex-col items-center justify-center overflow-hidden px-4 py-16 text-center sm:py-24"
         data-aos="fade-in"
       >
         <div className="absolute inset-0 -z-10 bg-[radial-gradient(circle_at_center,_var(--tw-gradient-stops))] from-primary/10 via-background to-background" />
@@ -228,29 +229,7 @@ export default async function Home() {
               Explore a gallery of images transformed by PicreAIte.
             </p>
           </div>
-          <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 md:grid-cols-4">
-            {showcaseImages.length > 0 ? (
-              showcaseImages.map((src, index) => (
-                <div
-                  key={src || index}
-                  className="group relative aspect-square transform overflow-hidden rounded-lg shadow-lg transition-all duration-300 hover:shadow-xl hover:scale-105"
-                >
-                  <img
-                    src={src}
-                    alt={`Showcase image ${index + 1}`}
-                    className="h-full w-full object-cover transition-transform duration-300 group-hover:scale-110"
-                    width={400}
-                    height={400}
-                  />
-                  <div className="absolute inset-0 bg-black/20 opacity-0 transition-opacity duration-300 group-hover:opacity-100" />
-                </div>
-              ))
-            ) : (
-              <p className="col-span-full mt-8 text-center text-muted-foreground">
-                No images to display yet. Check back soon!
-              </p>
-            )}
-          </div>
+          <ShowcaseGallery />
         </div>
       </section>
 
@@ -260,14 +239,17 @@ export default async function Home() {
         data-aos="fade-up"
         data-aos-delay="100"
       >
-        <div className="container mx-auto flex flex-col items-center justify-center px-4 text-center">
+        <div className="container mx-auto flex flex-col items-center justify-center p2-4 text-center">
           <Wand2 className="mb-4 h-12 w-12 text-primary" />
           <h2 className="text-3xl font-bold tracking-tight sm:text-4xl">
             Ready to Create Magic?
           </h2>
-          <p className="mt-4 max-w-xl text-lg text-muted-foreground">
+          <p className="mt-4 max-w-4xl text-lg text-muted-foreground">
             Join thousands of users transforming their images with the power of
-            AI. Start your creative journey today!
+            AI. To get started, you'll need to add your own OpenAI API key in
+            the <b>API Key</b> section. This ensures your generations are
+            private and secure. <br className="hidden sm:block" />
+            You can add or update your key anytime from the navigation bar.
           </p>
           <div className="mt-8">
             <Link
