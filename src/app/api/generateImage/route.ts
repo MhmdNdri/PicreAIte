@@ -1,6 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getAuth } from "@clerk/nextjs/server";
-import { ApiKeyService } from "@/services/apiKeyService";
 
 export const maxDuration = 60;
 export const runtime = "nodejs";
@@ -18,19 +17,19 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const apiKey = await ApiKeyService.getApiKey(userId);
+    const formData = await request.formData();
+
+    const apiKey = formData.get("apiKey") as string;
 
     if (!apiKey) {
       return NextResponse.json(
         {
           error:
-            "API key not found. Please set your API key in the API Key settings page.",
+            "OpenAI API key is required. Please set your API key in the settings.",
         },
         { status: 400 }
       );
     }
-
-    const formData = await request.formData();
 
     const prompt = formData.get("prompt") as string;
     const model = (formData.get("model") as string) || "gpt-image-1";
@@ -40,7 +39,6 @@ export async function POST(request: NextRequest) {
     const user = formData.get("user") as string;
 
     const imageFiles = formData.getAll("image[]");
-
     const maskFile = formData.get("mask") as File | null;
 
     const openaiFormData = new FormData();
@@ -97,8 +95,6 @@ export async function POST(request: NextRequest) {
     }
 
     const data = await response.json();
-
-    await ApiKeyService.updateLastUsed(userId);
 
     return NextResponse.json(data);
   } catch (error) {

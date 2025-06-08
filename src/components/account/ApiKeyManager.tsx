@@ -14,24 +14,27 @@ interface ProviderConfig {
   asyncValidator?: (key: string) => Promise<boolean>;
 }
 
+async function validateOpenAIApiKey(apiKey: string): Promise<boolean> {
+  try {
+    const response = await fetch("/api/validate-openai-key", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ apiKey }),
+    });
+    return response.ok;
+  } catch {
+    return false;
+  }
+}
+
 const PROVIDERS: Record<ProviderType, ProviderConfig> = {
   openai: {
     name: "OpenAI",
-    description: "Add your OpenAI API key to use DALL-E for image generation.",
+    description:
+      "Add your OpenAI API key to use gpt-image-1 for image editing.",
     placeholder: "sk-...",
     validator: (key: string) => key.startsWith("sk-"),
-    asyncValidator: async (key: string) => {
-      try {
-        const response = await fetch("/api/validate-openai-key", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ apiKey: key }),
-        });
-        return response.ok;
-      } catch {
-        return false;
-      }
-    },
+    asyncValidator: validateOpenAIApiKey,
   },
   gemini: {
     name: "Google Gemini",
