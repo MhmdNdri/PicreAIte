@@ -4,6 +4,58 @@ import { eq, and, lt, inArray } from "drizzle-orm";
 import { UploadThingService } from "./uploadthingService";
 
 export class SavedImagesService {
+  static async saveGeneratedImage(data: {
+    userId: string;
+    originalPrompt: string;
+    provider: string;
+    imageData: Buffer;
+    mimeType: string;
+  }) {
+    try {
+      // Generate a unique filename
+      const timestamp = Date.now();
+      const extension = data.mimeType.split("/")[1] || "png";
+      const fileName = `generated-${data.provider}-${timestamp}.${extension}`;
+
+      // Upload to UploadThing
+      const uploadResult = await UploadThingService.uploadFile(
+        data.imageData,
+        fileName,
+        data.mimeType
+      );
+
+      // Set expiration date to 24 hours from now
+      const expiresAt = new Date();
+      expiresAt.setDate(expiresAt.getDate() + 1);
+
+      // Save to database
+      const savedImageResults = await db
+        .insert(savedImages)
+        .values({
+          userId: data.userId,
+          imageUrl: uploadResult.url,
+          imageKey: uploadResult.key,
+          name: fileName,
+          imageType: data.provider,
+          expiresAt,
+        })
+        .returning();
+
+      const savedImage = savedImageResults[0];
+      if (!savedImage) {
+        throw new Error("Failed to save image to database");
+      }
+
+      return {
+        id: savedImage.id,
+        imageUrl: savedImage.imageUrl,
+        imageKey: savedImage.imageKey,
+      };
+    } catch (error) {
+      throw new Error("Failed to save generated image");
+    }
+  }
+
   static async saveImage(
     userId: string,
     imageUrl: string,
@@ -25,7 +77,6 @@ export class SavedImagesService {
         expiresAt,
       });
     } catch (error) {
-      console.error("Error saving image to database:", error);
       throw new Error("Failed to save image to database");
     }
   }
@@ -63,7 +114,6 @@ export class SavedImagesService {
 
       return validImages;
     } catch (error) {
-      console.error("Error in getUserImages:", error);
       throw new Error("Failed to fetch user images");
     }
   }
@@ -113,7 +163,6 @@ export class SavedImagesService {
             `Failed to delete file from UploadThing: ${image.imageKey}`,
             error
           );
-          // Continue with other files even if one fails
         }
       }
 
@@ -124,7 +173,6 @@ export class SavedImagesService {
 
       return result;
     } catch (error) {
-      console.error("Error cleaning up expired images:", error);
       throw new Error("Failed to clean up expired images");
     }
   }

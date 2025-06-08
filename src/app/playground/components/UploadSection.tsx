@@ -27,6 +27,7 @@ interface UploadSectionProps {
   onSubmit: (e: React.FormEvent) => void;
   isLoading: boolean;
   isMobile?: boolean;
+  selectedProvider?: "openai" | "gemini";
 }
 
 const MAX_IMAGES = 1;
@@ -75,6 +76,7 @@ export function UploadSection({
   onSubmit,
   isLoading,
   isMobile = false,
+  selectedProvider,
 }: UploadSectionProps) {
   const [isConverting, setIsConverting] = useState(false);
 
@@ -289,34 +291,42 @@ export function UploadSection({
 
       {/* Configuration options */}
       <form onSubmit={onSubmit} className="space-y-6">
-        <div className="grid grid-cols-2 gap-6">
-          <div>
-            <Label htmlFor="quality" className="text-sm block mb-2">
-              Quality
-            </Label>
-            <Select value={quality} onValueChange={onQualityChange}>
-              <SelectTrigger
-                id="quality"
-                className={`${isMobile ? "h-9" : "h-10"}`}
-              >
-                <SelectValue placeholder="Select quality" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="low">Low (Faster) ~ $0.01-0.05</SelectItem>
-                <SelectItem value="medium">Medium ~ $0.05-0.15</SelectItem>
-                <SelectItem value="high">
-                  High (Recommended) ~ $0.15-0.40
-                </SelectItem>
-              </SelectContent>
-            </Select>
-            <p className="text-xs text-muted-foreground mt-1">
-              Higher quality takes slightly longer to process
-            </p>
-          </div>
+        <div
+          className={`grid gap-6 ${
+            selectedProvider === "gemini" ? "grid-cols-1" : "grid-cols-2"
+          }`}
+        >
+          {/* Quality selector - only for OpenAI */}
+          {selectedProvider === "openai" && (
+            <div>
+              <Label htmlFor="quality" className="text-sm block mb-2">
+                Quality
+              </Label>
+              <Select value={quality} onValueChange={onQualityChange}>
+                <SelectTrigger
+                  id="quality"
+                  className={`${isMobile ? "h-9" : "h-10"}`}
+                >
+                  <SelectValue placeholder="Select quality" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="low">Low (Faster) ~ $0.01-0.05</SelectItem>
+                  <SelectItem value="medium">Medium ~ $0.05-0.15</SelectItem>
+                  <SelectItem value="high">
+                    High (Recommended) ~ $0.15-0.40
+                  </SelectItem>
+                </SelectContent>
+              </Select>
+              <p className="text-xs text-muted-foreground mt-1">
+                Higher quality takes slightly longer to process
+              </p>
+            </div>
+          )}
 
+          {/* Size selector */}
           <div>
             <Label htmlFor="size" className="text-sm block mb-2">
-              Output Size
+              {selectedProvider === "gemini" ? "Aspect Ratio" : "Output Size"}
             </Label>
             <Select value={size} onValueChange={onSizeChange}>
               <SelectTrigger
@@ -332,10 +342,22 @@ export function UploadSection({
               </SelectContent>
             </Select>
             <p className="text-xs text-muted-foreground mt-1">
-              Choose the aspect ratio for your result
+              {selectedProvider === "gemini"
+                ? "Choose the aspect ratio for your result"
+                : "Choose the aspect ratio for your result"}
             </p>
           </div>
         </div>
+
+        {/* Provider-specific info */}
+        {selectedProvider === "gemini" && (
+          <div className="p-3 bg-blue-50 dark:bg-blue-900/20 rounded-md border border-blue-200 dark:border-blue-800">
+            <p className="text-xs text-blue-700 dark:text-blue-300">
+              <strong>Gemini Note:</strong> Uses Imagen 3 for high-quality image
+              transformation. Quality is automatically optimized.
+            </p>
+          </div>
+        )}
 
         <Button
           type="submit"

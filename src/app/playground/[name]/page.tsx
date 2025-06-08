@@ -13,10 +13,14 @@ import {
 } from "@/components/ui/card";
 import { ArrowLeft } from "lucide-react";
 import Link from "next/link";
-import { useState } from "react";
+import { useState, useCallback, useEffect } from "react";
 import { use } from "react";
 import { MobileLayout } from "../components/MobileLayout";
 import { DesktopLayout } from "../components/DesktopLayout";
+import { useApiKeys } from "@/hooks/useApiKeys";
+import { ProviderSelect } from "../components/ProviderSelect";
+
+type ProviderType = "openai" | "gemini";
 
 async function fetchPrompt(name: string) {
   const response = await fetch(`/api/prompts/${name}`);
@@ -26,15 +30,29 @@ async function fetchPrompt(name: string) {
   return response.json();
 }
 
-async function generateImage(formData: FormData) {
+async function generateImageOpenAI(data: FormData) {
   const response = await fetch("/api/generateImage", {
     method: "POST",
-    body: formData,
+    body: data,
   });
 
   if (!response.ok) {
     const errorData = await response.json();
-    throw new Error(errorData.error || "Failed to edit image");
+    throw new Error(errorData.error || "Failed to generate image");
+  }
+
+  return response.json();
+}
+
+async function generateImageGemini(data: FormData) {
+  const response = await fetch("/api/generateImageGemini", {
+    method: "POST",
+    body: data,
+  });
+
+  if (!response.ok) {
+    const errorData = await response.json();
+    throw new Error(errorData.error || "Failed to generate image");
   }
 
   return response.json();
@@ -47,13 +65,17 @@ export default function PromptPage({
 }) {
   const { isLoaded, userId } = useAuth();
   const router = useRouter();
+  const { hasApiKey } = useApiKeys();
   const [images, setImages] = useState<File[]>([]);
   const [quality, setQuality] = useState<"low" | "medium" | "high">("high");
   const [size, setSize] = useState<"1024x1024" | "1536x1024" | "1024x1536">(
     "1024x1024"
   );
+  const [selectedProvider, setSelectedProvider] = useState<
+    ProviderType | undefined
+  >(undefined);
+  const [selectedApiKey, setSelectedApiKey] = useState<string>("");
 
-  // Unwrap the params Promise using React.use()
   const resolvedParams = use(params);
   const promptName = resolvedParams.name;
 
@@ -64,14 +86,130 @@ export default function PromptPage({
   });
 
   const {
-    mutate: generateImageMutation,
-    isPending,
-    error,
-    data,
-    reset,
+    mutate: generateOpenAIMutation,
+    isPending: isOpenAIPending,
+    error: openAIError,
+    data: openAIData,
+    reset: resetOpenAI,
   } = useMutation({
-    mutationFn: generateImage,
+    mutationFn: generateImageOpenAI,
   });
+
+  const {
+    mutate: generateGeminiMutation,
+    isPending: isGeminiPending,
+    error: geminiError,
+    data: geminiData,
+    reset: resetGemini,
+  } = useMutation({
+    mutationFn: generateImageGemini,
+  });
+
+  const isPending = isOpenAIPending || isGeminiPending;
+  const error = openAIError?.message || geminiError?.message || null;
+  const data = openAIData || geminiData;
+
+  const getImageResult = useCallback(() => {
+    if (!data?.data?.[0]) return null;
+    const imageData = data.data[0];
+    return imageData.b64_json || null;
+  }, [data]);
+
+  const getUsageData = useCallback(() => {
+    if (!data?.usage) return undefined;
+    return data.usage;
+  }, [data]);
+
+  const handleProviderSelect = useCallback(
+    (provider: ProviderType, apiKey: string) => {
+      if (provider !== selectedProvider || apiKey !== selectedApiKey) {
+        setSelectedProvider(provider);
+        setSelectedApiKey(apiKey);
+        resetOpenAI();
+        resetGemini();
+      }
+    },
+    [selectedProvider, selectedApiKey, resetOpenAI, resetGemini]
+  );
+
+  const handleImagesChange = useCallback((files: File[]) => {
+    setImages(files);
+  }, []);
+
+  const handleRemoveImage = useCallback((index: number) => {
+    setImages((images) => images.filter((_, i) => i !== index));
+  }, []);
+
+  const handleSubmit = useCallback(
+    async (e: React.FormEvent) => {
+      e.preventDefault();
+
+      if (!selectedProvider || !selectedApiKey) {
+        alert("Please select a provider first");
+        return;
+      }
+
+      if (images.length === 0) {
+        alert("Please upload an image first");
+        return;
+      }
+
+      const formData = new FormData();
+      formData.append("prompt", prompt.promptDesc);
+
+      if (selectedProvider === "openai") {
+        formData.append("model", "gpt-image-1");
+        formData.append("quality", quality);
+        formData.append("size", size);
+        formData.append("n", "1");
+
+        images.forEach((image) => {
+          formData.append("image[]", image);
+        });
+
+        generateOpenAIMutation(formData);
+      } else if (selectedProvider === "gemini") {
+        formData.append("apiKey", selectedApiKey);
+        formData.append("aspectRatio", "1:1");
+        formData.append("image", images[0]!);
+
+        generateGeminiMutation(formData);
+      }
+    },
+    [
+      selectedProvider,
+      selectedApiKey,
+      prompt?.promptDesc,
+      quality,
+      size,
+      images,
+      generateOpenAIMutation,
+      generateGeminiMutation,
+    ]
+  );
+
+  const handleReset = useCallback(() => {
+    resetOpenAI();
+    resetGemini();
+    setImages([]);
+  }, [resetOpenAI, resetGemini]);
+
+  const hasAnyApiKey = hasApiKey("openai") || hasApiKey("gemini");
+
+  useEffect(() => {
+    if (isLoaded && !selectedProvider) {
+      const openaiKey = localStorage.getItem("openai_api_key");
+      const geminiKey = localStorage.getItem("gemini_api_key");
+
+      if (openaiKey) {
+        setSelectedProvider("openai");
+        setSelectedApiKey(openaiKey);
+      } else if (geminiKey) {
+        setSelectedProvider("gemini");
+        setSelectedApiKey(geminiKey);
+      }
+    }
+  }, [isLoaded, selectedProvider]);
 
   if (!isLoaded) {
     return null;
@@ -94,38 +232,6 @@ export default function PromptPage({
     router.push("/playground");
     return null;
   }
-
-  const handleImagesChange = (files: File[]) => {
-    setImages(files);
-  };
-
-  const handleRemoveImage = (index: number) => {
-    setImages(images.filter((_, i) => i !== index));
-  };
-
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-
-    const formData = new FormData();
-    formData.append("prompt", prompt.promptDesc);
-    formData.append("model", "gpt-image-1");
-    formData.append("n", "1");
-    formData.append("quality", quality);
-    formData.append("size", size);
-
-    images.forEach((img) => {
-      formData.append("image[]", img);
-    });
-
-    formData.append("mask", "");
-
-    generateImageMutation(formData);
-  };
-
-  const handleReset = () => {
-    reset();
-    setImages([]);
-  };
 
   return (
     <main className="min-h-screen bg-gradient-to-b from-background to-muted">
@@ -156,41 +262,67 @@ export default function PromptPage({
           </CardHeader>
 
           <CardContent className="p-0">
-            {/* Desktop layout */}
-            <DesktopLayout
-              prompt={prompt}
-              images={images}
-              onImagesChange={handleImagesChange}
-              onRemoveImage={handleRemoveImage}
-              quality={quality}
-              onQualityChange={setQuality}
-              size={size}
-              onSizeChange={setSize}
-              onSubmit={handleSubmit}
-              isLoading={isPending}
-              result={data?.data?.[0]?.b64_json || null}
-              error={error?.message || null}
-              onReset={handleReset}
-              usage={data?.usage}
-            />
+            {!hasAnyApiKey ? (
+              <div className="p-6">
+                <div className="text-center">
+                  <h3 className="text-lg font-semibold mb-2">
+                    API Key Required
+                  </h3>
+                  <p className="text-muted-foreground mb-4">
+                    You need to configure your API keys to generate images.
+                  </p>
+                  <Button asChild>
+                    <Link href="/api-key">Setup API Keys</Link>
+                  </Button>
+                </div>
+              </div>
+            ) : (
+              <>
+                <div className="p-6 border-b border-gray-100 dark:border-gray-800">
+                  <ProviderSelect
+                    onProviderSelect={handleProviderSelect}
+                    selectedProvider={selectedProvider}
+                    disabled={isPending}
+                  />
+                </div>
 
-            {/* Mobile layout */}
-            <MobileLayout
-              prompt={prompt}
-              images={images}
-              onImagesChange={handleImagesChange}
-              onRemoveImage={handleRemoveImage}
-              quality={quality}
-              onQualityChange={setQuality}
-              size={size}
-              onSizeChange={setSize}
-              onSubmit={handleSubmit}
-              isLoading={isPending}
-              result={data?.data?.[0]?.b64_json || null}
-              error={error?.message || null}
-              onReset={handleReset}
-              usage={data?.usage}
-            />
+                <DesktopLayout
+                  prompt={prompt}
+                  images={images}
+                  onImagesChange={handleImagesChange}
+                  onRemoveImage={handleRemoveImage}
+                  quality={quality}
+                  onQualityChange={setQuality}
+                  size={size}
+                  onSizeChange={setSize}
+                  onSubmit={handleSubmit}
+                  isLoading={isPending}
+                  result={getImageResult()}
+                  error={error}
+                  onReset={handleReset}
+                  selectedProvider={selectedProvider}
+                  usage={getUsageData()}
+                />
+
+                <MobileLayout
+                  prompt={prompt}
+                  images={images}
+                  onImagesChange={handleImagesChange}
+                  onRemoveImage={handleRemoveImage}
+                  quality={quality}
+                  onQualityChange={setQuality}
+                  size={size}
+                  onSizeChange={setSize}
+                  onSubmit={handleSubmit}
+                  isLoading={isPending}
+                  result={getImageResult()}
+                  error={error}
+                  onReset={handleReset}
+                  selectedProvider={selectedProvider}
+                  usage={getUsageData()}
+                />
+              </>
+            )}
           </CardContent>
         </Card>
       </div>

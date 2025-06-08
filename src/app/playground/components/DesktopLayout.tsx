@@ -1,4 +1,3 @@
-import React from "react";
 import Image from "next/image";
 import { UploadSection } from "./UploadSection";
 import { ResultSection } from "./ResultSection";
@@ -23,6 +22,7 @@ interface DesktopLayoutProps {
   result: string | null;
   error: string | null;
   onReset: () => void;
+  selectedProvider?: "openai" | "gemini";
   usage?: {
     input_tokens: number;
     input_tokens_details: {
@@ -48,6 +48,7 @@ export function DesktopLayout({
   result,
   error,
   onReset,
+  selectedProvider,
   usage,
 }: DesktopLayoutProps) {
   return (
@@ -113,6 +114,7 @@ export function DesktopLayout({
             onSizeChange={onSizeChange}
             onSubmit={onSubmit}
             isLoading={isLoading}
+            selectedProvider={selectedProvider}
           />
 
           {/* Result section */}

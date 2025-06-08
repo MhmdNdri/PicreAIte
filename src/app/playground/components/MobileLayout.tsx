@@ -1,4 +1,3 @@
-import React from "react";
 import Image from "next/image";
 import { UploadSection } from "./UploadSection";
 import { ResultSection } from "./ResultSection";
@@ -23,6 +22,7 @@ interface MobileLayoutProps {
   result: string | null;
   error: string | null;
   onReset: () => void;
+  selectedProvider?: "openai" | "gemini";
   usage?: {
     input_tokens: number;
     input_tokens_details: {
@@ -48,6 +48,7 @@ export function MobileLayout({
   result,
   error,
   onReset,
+  selectedProvider,
   usage,
 }: MobileLayoutProps) {
   return (
@@ -109,6 +110,7 @@ export function MobileLayout({
           onSubmit={onSubmit}
           isLoading={isLoading}
           isMobile={true}
+          selectedProvider={selectedProvider}
         />
       </div>
 
