@@ -23,51 +23,15 @@ export async function generateImageWithGemini(
   try {
     const ai = new GoogleGenAI({ apiKey });
 
-    // Use Gemini 2.0 Flash for image editing, Imagen 3 for text-to-image
     if (options.inputImage) {
-      // Use Gemini 2.0 Flash for image editing with input image
-      const contents = [
-        {
-          text: prompt,
-        },
-        {
-          inlineData: {
-            mimeType: options.inputImage.mimeType,
-            data: options.inputImage.imageBytes,
-          },
-        },
-      ];
-
-      const response = await ai.models.generateContent({
-        model: "gemini-2.0-flash-exp",
-        contents: contents,
-        config: {
-          responseModalities: ["TEXT", "IMAGE"],
-        },
-      });
-
-      // Find the image in the response
-      if (!response.candidates || response.candidates.length === 0) {
-        throw new Error("No candidates received from Gemini");
-      }
-
-      const candidate = response.candidates[0];
-      if (!candidate?.content?.parts) {
-        throw new Error("No content parts received from Gemini");
-      }
-
-      for (const part of candidate.content.parts) {
-        if (part.inlineData) {
-          return {
-            imageBytes: part.inlineData.data,
-            mimeType: "image/png",
-          };
-        }
-      }
-
-      throw new Error("No image data received from Gemini");
+      // IMPORTANT: Gemini doesn't actually support image editing like OpenAI's gpt-image-1
+      // Gemini is designed for image understanding, not editing
+      // We'll inform the user and suggest using OpenAI instead
+      throw new Error(
+        "Image editing is not supported with Gemini. Gemini is designed for image understanding and analysis, not editing. Please use OpenAI (gpt-image-1) for image editing capabilities."
+      );
     } else {
-      // Use Imagen 3 for text-to-image generation
+      // Use Imagen 3 for text-to-image generation (this works well)
       const response = await ai.models.generateImages({
         model: "imagen-3.0-generate-002",
         prompt: prompt,
@@ -108,10 +72,22 @@ export async function generateImageWithGemini(
     }
 
     // Check for safety setting issues
-    if (errorMessage.includes("safetySetting")) {
+    if (errorMessage.includes("safetySetting") || errorMessage.includes("safety")) {
       throw new Error(
-        "Gemini safety settings error. Please try with different content."
+        "Content was blocked by Gemini safety filters. Please try with different content or prompt."
       );
+    }
+
+    // Check for authentication issues
+    if (errorMessage.includes("authentication") || errorMessage.includes("API key")) {
+      throw new Error(
+        "Invalid Gemini API key. Please check your API key and try again."
+      );
+    }
+
+    // Pass through our custom image editing error message
+    if (errorMessage.includes("Image editing is not supported with Gemini")) {
+      throw error;
     }
 
     throw new Error(`Gemini image generation failed: ${errorMessage}`);
