@@ -102,7 +102,7 @@ export function ResultSection({
             <StatusOverlay
               type="loading"
               message="Processing your image..."
-              submessage="This may take a few moments"
+              submessage="High-quality generation may take 2-5 minutes. Please wait..."
             />
           )}
 

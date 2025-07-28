@@ -7,5 +7,9 @@ export const queryClient = new QueryClient({
       refetchOnWindowFocus: false,
       retry: 1,
     },
+    mutations: {
+      retry: 1,
+      // Set no timeout here - let the API route handle its own timeout
+    },
   },
 });

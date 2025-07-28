@@ -159,7 +159,7 @@ export default function PromptPage({
 
       if (selectedProvider === "openai") {
         formData.append("apiKey", selectedApiKey);
-        formData.append("model", "gpt-image-1");
+        formData.append("model", "gpt-image-1"); 
         formData.append("quality", quality);
         formData.append("size", size);
         formData.append("n", "1");

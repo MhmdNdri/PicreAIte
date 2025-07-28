@@ -310,15 +310,18 @@ export function UploadSection({
                   <SelectValue placeholder="Select quality" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="low">Low (Faster) ~ $0.01-0.05</SelectItem>
-                  <SelectItem value="medium">Medium ~ $0.05-0.15</SelectItem>
+                  <SelectItem value="low">Fast (Standard) ~ $0.01-0.05</SelectItem>
+                  <SelectItem value="medium">Standard ~ $0.05-0.15</SelectItem>
                   <SelectItem value="high">
-                    High (Recommended) ~ $0.15-0.40
+                    HD Quality ~ $0.15-0.40 (2-5 min)
                   </SelectItem>
                 </SelectContent>
               </Select>
               <p className="text-xs text-muted-foreground mt-1">
-                Higher quality takes slightly longer to process
+                {quality === "high" 
+                  ? "HD quality may take 2-5 minutes to process" 
+                  : "Higher quality takes slightly longer to process"
+                }
               </p>
             </div>
           )}
