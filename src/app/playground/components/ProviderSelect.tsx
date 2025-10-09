@@ -14,7 +14,7 @@ import { Badge } from "@/components/ui/badge";
 import { Zap, Sparkles, AlertCircle } from "lucide-react";
 import Link from "next/link";
 
-type ProviderType = "openai" | "gemini";
+type ProviderType = "openai" | "openai-mini" | "gemini";
 
 interface ProviderSelectProps {
   onProviderSelect: (provider: ProviderType, apiKey: string) => void;
@@ -27,11 +27,22 @@ const PROVIDERS = {
     name: "OpenAI gpt-image-1",
     icon: <Zap className="h-4 w-4" />,
     color: "text-emerald-600",
+    badge: "Standard",
+    description: "High-quality image generation",
+  },
+  "openai-mini": {
+    name: "OpenAI gpt-image-1-mini",
+    icon: <Zap className="h-4 w-4" />,
+    color: "text-emerald-500",
+    badge: "Cheaper",
+    description: "Cost-effective image generation",
   },
   gemini: {
     name: "Google Imagen 3",
     icon: <Sparkles className="h-4 w-4" />,
     color: "text-blue-600",
+    badge: "Fast",
+    description: "May not be available in all countries",
   },
 };
 
@@ -48,7 +59,10 @@ export function ProviderSelect({
   useEffect(() => {
     if (isLoaded) {
       const providers: ProviderType[] = [];
-      if (hasApiKey("openai")) providers.push("openai");
+      if (hasApiKey("openai")) {
+        providers.push("openai");
+        providers.push("openai-mini");
+      }
       if (hasApiKey("gemini")) providers.push("gemini");
       setAvailableProviders(providers);
     }
@@ -56,7 +70,9 @@ export function ProviderSelect({
 
   const handleProviderChange = (provider: string) => {
     const typedProvider = provider as ProviderType;
-    const apiKey = getApiKey(typedProvider);
+    // Both openai and openai-mini use the same OpenAI API key
+    const keyType = typedProvider === "openai-mini" ? "openai" : typedProvider;
+    const apiKey = getApiKey(keyType as "openai" | "gemini");
     if (apiKey) {
       onProviderSelect(typedProvider, apiKey);
     }
@@ -111,16 +127,20 @@ export function ProviderSelect({
                   {PROVIDERS[provider].icon}
                 </span>
                 <span>{PROVIDERS[provider].name}</span>
-                <Badge variant="secondary" className="ml-2">
-                  {hasApiKey(provider) ? "✓ Ready" : "Setup Required"}
+                <Badge
+                  variant={provider === "openai-mini" ? "outline" : "secondary"}
+                  className={`ml-2 ${
+                    provider === "openai-mini"
+                      ? "border-emerald-500 text-emerald-600"
+                      : ""
+                  }`}
+                >
+                  {PROVIDERS[provider].badge}
                 </Badge>
               </div>
-              {provider === "gemini" && (
-                <p className="text-xs text-muted-foreground mt-1">
-                  Note: Gemini image generation may not be available in all
-                  countries
-                </p>
-              )}
+              <p className="text-xs text-muted-foreground mt-1">
+                {PROVIDERS[provider].description}
+              </p>
             </SelectItem>
           ))}
         </SelectContent>

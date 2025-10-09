@@ -28,11 +28,24 @@ interface ResultSectionProps {
   onReset: () => void;
   isMobile?: boolean;
   usage?: Usage;
+  selectedProvider?: "openai" | "openai-mini" | "gemini";
 }
 
-const calculateCost = (usage: Usage): number => {
-  const inputCost = (usage.input_tokens / 1_000_000) * 10;
-  const outputCost = (usage.output_tokens / 1_000_000) * 40;
+const calculateCost = (
+  usage: Usage,
+  provider?: "openai" | "openai-mini" | "gemini"
+): number => {
+  // Pricing for gpt-image-1-mini is approximately 3x cheaper
+  const isMini = provider === "openai-mini";
+
+  // Input token pricing: $10/1M for standard, ~$3.33/1M for mini
+  const inputRate = isMini ? 3.33 : 10;
+
+  // Output token pricing: $40/1M for standard, ~$13.33/1M for mini
+  const outputRate = isMini ? 13.33 : 40;
+
+  const inputCost = (usage.input_tokens / 1_000_000) * inputRate;
+  const outputCost = (usage.output_tokens / 1_000_000) * outputRate;
   return (inputCost + outputCost) * 1.35;
 };
 
@@ -45,6 +58,7 @@ export function ResultSection({
   onReset,
   isMobile = false,
   usage,
+  selectedProvider,
 }: ResultSectionProps) {
   const [imageLoaded, setImageLoaded] = useState(false);
 
@@ -102,7 +116,7 @@ export function ResultSection({
             <StatusOverlay
               type="loading"
               message="Processing your image..."
-              submessage="High-quality generation may take 2-5 minutes. Please wait..."
+              submessage="Generation may take 2-5 minutes. Please wait..."
             />
           )}
 
@@ -132,7 +146,7 @@ export function ResultSection({
               </div>
               {usage && (
                 <div className="absolute top-2 right-2 bg-[#1A1E33] text-[#00F5FF] text-xs font-medium px-2 py-1 rounded-md shadow-sm z-20">
-                  Cost: ${calculateCost(usage).toFixed(4)}
+                  Cost: ${calculateCost(usage, selectedProvider).toFixed(4)}
                 </div>
               )}
             </>

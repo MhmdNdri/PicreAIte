@@ -20,7 +20,7 @@ import { DesktopLayout } from "../components/DesktopLayout";
 import { useApiKeys } from "@/hooks/useApiKeys";
 import { ProviderSelect } from "../components/ProviderSelect";
 
-type ProviderType = "openai" | "gemini";
+type ProviderType = "openai" | "openai-mini" | "gemini";
 
 async function fetchPrompt(name: string) {
   const response = await fetch(`/api/prompts/${name}`);
@@ -157,9 +157,14 @@ export default function PromptPage({
       const formData = new FormData();
       formData.append("prompt", prompt.promptDesc);
 
-      if (selectedProvider === "openai") {
+      if (selectedProvider === "openai" || selectedProvider === "openai-mini") {
         formData.append("apiKey", selectedApiKey);
-        formData.append("model", "gpt-image-1"); 
+        formData.append(
+          "model",
+          selectedProvider === "openai-mini"
+            ? "gpt-image-1-mini"
+            : "gpt-image-1"
+        );
         formData.append("quality", quality);
         formData.append("size", size);
         formData.append("n", "1");
@@ -203,6 +208,7 @@ export default function PromptPage({
       const geminiKey = localStorage.getItem("gemini_api_key");
 
       if (openaiKey) {
+        // Default to standard gpt-image-1 model
         setSelectedProvider("openai");
         setSelectedApiKey(openaiKey);
       } else if (geminiKey) {

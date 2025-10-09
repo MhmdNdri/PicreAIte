@@ -22,7 +22,7 @@ interface MobileLayoutProps {
   result: string | null;
   error: string | null;
   onReset: () => void;
-  selectedProvider?: "openai" | "gemini";
+  selectedProvider?: "openai" | "openai-mini" | "gemini";
   usage?: {
     input_tokens: number;
     input_tokens_details: {
@@ -124,6 +124,7 @@ export function MobileLayout({
         onReset={onReset}
         isMobile={true}
         usage={usage}
+        selectedProvider={selectedProvider}
       />
     </div>
   );

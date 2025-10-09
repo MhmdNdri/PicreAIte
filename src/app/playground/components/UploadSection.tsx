@@ -27,7 +27,7 @@ interface UploadSectionProps {
   onSubmit: (e: React.FormEvent) => void;
   isLoading: boolean;
   isMobile?: boolean;
-  selectedProvider?: "openai" | "gemini";
+  selectedProvider?: "openai" | "openai-mini" | "gemini";
 }
 
 const MAX_IMAGES = 1;
@@ -296,8 +296,9 @@ export function UploadSection({
             selectedProvider === "gemini" ? "grid-cols-1" : "grid-cols-2"
           }`}
         >
-          {/* Quality selector - only for OpenAI */}
-          {selectedProvider === "openai" && (
+          {/* Quality selector - only for OpenAI models */}
+          {(selectedProvider === "openai" ||
+            selectedProvider === "openai-mini") && (
             <div>
               <Label htmlFor="quality" className="text-sm block mb-2">
                 Quality
@@ -310,18 +311,30 @@ export function UploadSection({
                   <SelectValue placeholder="Select quality" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="low">Fast (Standard) ~ $0.01-0.05</SelectItem>
-                  <SelectItem value="medium">Standard ~ $0.05-0.15</SelectItem>
+                  <SelectItem value="low">
+                    Low ~{" "}
+                    {selectedProvider === "openai-mini"
+                      ? "$0.01-0.02"
+                      : "$0.01-0.05"}
+                  </SelectItem>
+                  <SelectItem value="medium">
+                    Standard ~{" "}
+                    {selectedProvider === "openai-mini"
+                      ? "$0.02-0.05"
+                      : "$0.05-0.15"}
+                  </SelectItem>
                   <SelectItem value="high">
-                    HD Quality ~ $0.15-0.40 (2-5 min)
+                    High ~{" "}
+                    {selectedProvider === "openai-mini"
+                      ? "$0.05-0.13"
+                      : "$0.15-0.40"}
                   </SelectItem>
                 </SelectContent>
               </Select>
               <p className="text-xs text-muted-foreground mt-1">
-                {quality === "high" 
-                  ? "HD quality may take 2-5 minutes to process" 
-                  : "Higher quality takes slightly longer to process"
-                }
+                {selectedProvider === "openai-mini"
+                  ? "Using cost-effective model (~3x cheaper)"
+                  : "Higher quality provides better detail but takes longer"}
               </p>
             </div>
           )}
@@ -347,6 +360,8 @@ export function UploadSection({
             <p className="text-xs text-muted-foreground mt-1">
               {selectedProvider === "gemini"
                 ? "Choose the aspect ratio for your result"
+                : selectedProvider === "openai-mini"
+                ? "Choose your output dimensions (cost-effective pricing)"
                 : "Choose the aspect ratio for your result"}
             </p>
           </div>
