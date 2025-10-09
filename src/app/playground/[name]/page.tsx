@@ -208,8 +208,8 @@ export default function PromptPage({
       const geminiKey = localStorage.getItem("gemini_api_key");
 
       if (openaiKey) {
-        // Default to standard gpt-image-1 model
-        setSelectedProvider("openai");
+        // Default to cost-effective gpt-image-1-mini model
+        setSelectedProvider("openai-mini");
         setSelectedApiKey(openaiKey);
       } else if (geminiKey) {
         setSelectedProvider("gemini");
