@@ -7,7 +7,7 @@ export default function Page() {
       <div className="w-full max-w-[800px] px-4">
         <div className="mb-8 text-center">
           <Link href="/" className="text-3xl font-bold text-foreground">
-            Picre<span className="text-primary">AI</span>te
+            Picre<span className="text-[#00F5FF]">AI</span>te
           </Link>
           <h1 className="mt-8 text-2xl font-semibold text-foreground">
             Welcome to PicreAIte
@@ -19,30 +19,46 @@ export default function Page() {
 
         <SignIn
           appearance={{
+            layout: {
+              socialButtonsPlacement: "top",
+              socialButtonsVariant: "blockButton",
+            },
+            variables: {
+              colorPrimary: "#00F5FF",
+              colorText: "#1A1E33",
+              colorBackground: "#ffffff",
+              colorInputBackground: "#ffffff",
+              colorInputText: "#1A1E33",
+              borderRadius: "0.5rem",
+            },
             elements: {
-              rootBox:
-                "w-full [&>div]:!bg-transparent [&>div]:dark:!bg-transparent",
-              card: "shadow-none bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60",
+              rootBox: "w-full",
+              card: "shadow-xl border dark:border-gray-700",
               headerTitle: "hidden",
               headerSubtitle: "hidden",
               formButtonPrimary:
-                "bg-transparent hover:bg-primary/10 text-primary-foreground shadow-lg hover:shadow-xl transition-all duration-200 hover:-translate-y-0.5 active:translate-y-0.5 active:shadow-md backdrop-blur-sm border border-primary/20",
-              footerActionLink: "text-primary hover:text-primary/90",
-              formFieldInput: "bg-background text-foreground",
-              formFieldLabel: "text-foreground",
+                "bg-[#00F5FF] hover:bg-[#00F5FF]/90 text-[#1A1E33] font-semibold shadow-lg hover:shadow-xl transition-all duration-200 hover:-translate-y-0.5 active:translate-y-0 normal-case",
+              footerActionLink:
+                "text-[#00F5FF] hover:text-[#00F5FF]/80 font-medium",
+              formFieldInput:
+                "border-gray-300 dark:border-gray-600 focus:ring-2 focus:ring-[#00F5FF] focus:border-[#00F5FF] dark:bg-[#0f1222] dark:text-gray-100",
+              formFieldLabel: "dark:text-gray-300",
               socialButtonsBlockButton:
-                "bg-background hover:bg-accent text-foreground dark:bg-background dark:hover:bg-accent dark:text-foreground",
-              socialButtonsBlockButtonText:
-                "text-foreground dark:text-foreground",
-              dividerLine: "bg-border",
-              dividerText: "text-muted-foreground",
-              cardBox: "!bg-transparent dark:!bg-transparent",
-              main: "!bg-transparent dark:!bg-transparent",
-              footerActionText: "text-muted-foreground",
-              footer: "!bg-transparent dark:!bg-transparent",
-              footerAction: "text-muted-foreground",
-              footerBox:
-                "!bg-transparent dark:!bg-transparent [&>div]:!bg-transparent [&>div]:dark:!bg-transparent [&_.cl-internal-4x6jej]:!bg-transparent [&_.cl-internal-4x6jej]:dark:!bg-transparent",
+                "border-gray-300 dark:border-gray-600 hover:bg-gray-50 dark:hover:bg-[#1a1f3a] dark:bg-[#0f1222] dark:text-gray-100",
+              socialButtonsBlockButtonText: "font-medium dark:text-gray-100",
+              socialButtonsProviderIcon: "dark:brightness-200",
+              dividerLine: "bg-gray-300 dark:bg-gray-600",
+              dividerText: "text-gray-500 dark:text-gray-400",
+              formFieldInputShowPasswordButton:
+                "text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300",
+              identityPreviewText: "dark:text-gray-100",
+              identityPreviewEditButton:
+                "text-[#00F5FF] hover:text-[#00F5FF]/80",
+              formHeaderTitle: "dark:text-gray-100",
+              formHeaderSubtitle: "dark:text-gray-400",
+              footerActionText: "dark:text-gray-400",
+              footer: "dark:bg-transparent",
+              footerAction: "dark:bg-transparent",
             },
           }}
         />

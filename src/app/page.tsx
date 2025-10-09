@@ -202,7 +202,7 @@ export default async function Home() {
                 key={item.step}
                 className="relative transform rounded-xl border border-border bg-card p-6 text-center shadow-lg transition-all duration-300 hover:shadow-xl hover:-translate-y-1"
               >
-                <div className="absolute -top-5 left-1/2 -translate-x-1/2 rounded-full bg-primary px-4 py-2 text-sm font-bold text-primary-foreground">
+                <div className="absolute -top-5 left-1/2 -translate-x-1/2 rounded-full bg-primary px-4 py-2 text-sm font-bold text-[#1A1E33]">
                   Step {item.step}
                 </div>
                 <div className="mb-6 mt-8 flex justify-center">{item.icon}</div>
@@ -276,28 +276,36 @@ export default async function Home() {
             </p>
             <div className="flex gap-4">
               <Link
-                href="#"
-                className="text-muted-foreground hover:text-primary"
+                href="https://x.com/Mhmd_ndri"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="text-muted-foreground hover:text-primary transition-colors"
+                aria-label="Twitter"
               >
                 <Twitter className="h-5 w-5" />
               </Link>
               <Link
-                href="#"
-                className="text-muted-foreground hover:text-primary"
+                href="https://github.com/MhmdNdri"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="text-muted-foreground hover:text-primary transition-colors"
+                aria-label="GitHub"
               >
                 <Github className="h-5 w-5" />
               </Link>
               <Link
-                href="#"
-                className="text-muted-foreground hover:text-primary"
+                href="https://www.linkedin.com/in/mhmd-ndri/"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="text-muted-foreground hover:text-primary transition-colors"
+                aria-label="LinkedIn"
               >
                 <Linkedin className="h-5 w-5" />
               </Link>
             </div>
           </div>
           <p className="mt-4 text-xs text-muted-foreground">
-            Crafted with <Sparkles className="inline h-3 w-3 text-yellow-400" />{" "}
-            by AI, fine-tuned by humans.
+            Made with love and passion.
           </p>
         </div>
       </footer>

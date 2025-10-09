@@ -96,6 +96,93 @@
   background-image: none !important;
 }
 
+/* Clerk dark mode fixes */
+.dark .cl-card {
+  background-color: #1a1e33 !important;
+  color: #e6f0fa !important;
+}
+
+.dark .cl-formFieldInput,
+.dark .cl-input {
+  background-color: #0f1222 !important;
+  color: #e6f0fa !important;
+  border-color: #4a5568 !important;
+  box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.3), 0 1px 3px 0 rgba(0, 0, 0, 0.2) !important;
+}
+
+.dark .cl-formFieldInput::placeholder,
+.dark .cl-input::placeholder {
+  color: #6b7280 !important;
+  opacity: 1 !important;
+}
+
+.dark .cl-formFieldInput:focus,
+.dark .cl-input:focus {
+  border-color: #00f5ff !important;
+  box-shadow: 0 0 0 3px rgba(0, 245, 255, 0.1), 0 1px 2px 0 rgba(0, 0, 0, 0.3) !important;
+}
+
+.dark .cl-formFieldLabel {
+  color: #d1d5db !important;
+}
+
+.dark .cl-socialButtonsBlockButton {
+  background-color: #0f1222 !important;
+  color: #e6f0fa !important;
+  border-color: #4a5568 !important;
+  box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.3), 0 1px 3px 0 rgba(0, 0, 0, 0.2) !important;
+}
+
+.dark .cl-socialButtonsBlockButton:hover {
+  background-color: #1a1f3a !important;
+  box-shadow: 0 2px 4px 0 rgba(0, 0, 0, 0.4), 0 2px 5px 0 rgba(0, 0, 0, 0.3) !important;
+}
+
+.dark .cl-socialButtonsBlockButtonText {
+  color: #e6f0fa !important;
+}
+
+.dark .cl-dividerLine {
+  background-color: #4a5568 !important;
+}
+
+.dark .cl-dividerText {
+  color: #9ca3af !important;
+}
+
+.dark .cl-footerActionText,
+.dark .cl-footerAction {
+  color: #9ca3af !important;
+}
+
+.dark .cl-footer {
+  background-color: transparent !important;
+}
+
+/* Clerk "Secured by" section in dark mode */
+.dark .cl-internal-1q4rk2m,
+.dark .cl-internal-fcx671 {
+  color: #6b7280 !important;
+}
+
+.dark .cl-internal-1axx6jt {
+  color: #9ca3af !important;
+}
+
+.dark .cl-internal-1axx6jt:hover {
+  color: #d1d5db !important;
+}
+
+/* Ensure button always has correct colors */
+.cl-formButtonPrimary {
+  background-color: #00f5ff !important;
+  color: #1a1e33 !important;
+}
+
+.cl-formButtonPrimary:hover {
+  background-color: rgba(0, 245, 255, 0.9) !important;
+}
+
 ::view-transition-old(root),
 ::view-transition-new(root) {
   animation: none;
