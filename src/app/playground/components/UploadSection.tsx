@@ -45,22 +45,50 @@ const isFileSizeValid = (file: File): boolean => {
   return true;
 };
 
-// Helper function to convert HEIC to PNG
-const convertHeicToPng = async (file: File): Promise<File | null> => {
+// Helper function to progressively compress HEIC images
+const compressHeicImage = async (file: File): Promise<File | null> => {
   try {
     const buffer = await file.arrayBuffer();
-    const pngBuffer = await heicConvert({
-      buffer: Buffer.from(buffer),
-      format: "PNG",
-      quality: 1,
-    });
+    let quality = 0.95; // Start with good quality
+    let jpegBuffer: Uint8Array;
 
-    const blob = new Blob([pngBuffer], { type: "image/png" });
-    const newFileName = file.name.replace(/\.heic$/i, ".png");
-    return new File([blob], newFileName, { type: "image/png" });
+    // Try different quality levels until file is small enough
+    do {
+      jpegBuffer = await heicConvert({
+        buffer: Buffer.from(buffer),
+        format: "JPEG",
+        quality: quality,
+      });
+
+      if (jpegBuffer.length <= MAX_FILE_SIZE) {
+        break; // File is small enough
+      }
+
+      quality -= 0.15; // Reduce quality by 15% each attempt
+
+      // If quality gets too low, give up
+      if (quality < 0.3) {
+        toast.error("Image too large to compress", {
+          description: `Even with maximum compression, this image exceeds 4MB. Please resize or choose a smaller image.`,
+          icon: "❌",
+        });
+        return null;
+      }
+    } while (jpegBuffer.length > MAX_FILE_SIZE);
+
+    const blob = new Blob([Buffer.from(jpegBuffer)], { type: "image/jpeg" });
+    const newFileName = file.name.replace(
+      /\.heic$/i,
+      `_${Math.round(quality * 100)}pct.jpg`
+    );
+    console.log(blob, quality);
+    return new File([blob], newFileName, { type: "image/jpeg" });
   } catch (error) {
-    console.error("Error converting HEIC to PNG:", error);
-    toast.error("Failed to convert HEIC image");
+    console.error("Error compressing HEIC image:", error);
+    toast.error("Failed to compress HEIC image", {
+      description: "Please try with a different image or format.",
+      icon: "❌",
+    });
     return null;
   }
 };
@@ -121,7 +149,8 @@ export function UploadSection({
         if (!isFileSizeValid(file)) return null;
 
         if (file.type.includes("heic")) {
-          return await convertHeicToPng(file);
+          // Compress HEIC with progressive quality reduction
+          return await compressHeicImage(file);
         }
         return file;
       })
@@ -206,7 +235,8 @@ export function UploadSection({
             </p>
             <p className="text-xs text-muted-foreground">or click to browse</p>
             <p className="mt-2 text-xs text-muted-foreground">
-              Upload your image (JPG, PNG, WebP, HEIC)
+              Upload your image (JPG, PNG, WebP, HEIC - will be converted to
+              JPEG)
             </p>
           </>
         )}
