@@ -49,7 +49,7 @@ const isFileSizeValid = (file: File): boolean => {
 const compressHeicImage = async (file: File): Promise<File | null> => {
   try {
     const buffer = await file.arrayBuffer();
-    let quality = 0.95; // Start with good quality
+    let quality = 0.99; // Start with good quality
     let jpegBuffer: Uint8Array;
 
     // Try different quality levels until file is small enough
@@ -81,7 +81,6 @@ const compressHeicImage = async (file: File): Promise<File | null> => {
       /\.heic$/i,
       `_${Math.round(quality * 100)}pct.jpg`
     );
-    console.log(blob, quality);
     return new File([blob], newFileName, { type: "image/jpeg" });
   } catch (error) {
     console.error("Error compressing HEIC image:", error);
