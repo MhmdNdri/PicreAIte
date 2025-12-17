@@ -32,6 +32,8 @@ export async function POST(request: NextRequest) {
 
     const apiKey = parsed.data.apiKey;
     const prompt = parsed.data.prompt;
+    // Keep server fallback as gpt-image-1 to avoid implicitly changing defaults;
+    // the client can explicitly request newer models (e.g. gpt-image-1.5).
     const model = parsed.data.model || "gpt-image-1";
     const n = parsed.data.n ?? 1;
     const quality = parsed.data.quality || "auto";

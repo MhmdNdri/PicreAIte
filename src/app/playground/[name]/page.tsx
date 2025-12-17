@@ -163,7 +163,7 @@ export default function PromptPage({
           "model",
           selectedProvider === "openai-mini"
             ? "gpt-image-1-mini"
-            : "gpt-image-1"
+            : "gpt-image-1.5"
         );
         formData.append("quality", quality);
         formData.append("size", size);

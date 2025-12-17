@@ -24,7 +24,7 @@ interface ProviderSelectProps {
 
 const PROVIDERS = {
   openai: {
-    name: "gpt-image-1",
+    name: "gpt-image-1.5",
     displayName: "OpenAI Standard",
     icon: <Zap className="h-4 w-4" />,
     color: "text-emerald-600 dark:text-emerald-400",

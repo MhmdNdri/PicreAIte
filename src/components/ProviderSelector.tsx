@@ -24,7 +24,7 @@ interface ProviderInfo {
 const PROVIDERS: ProviderInfo[] = [
   {
     id: "openai",
-    name: "OpenAI gpt-image-1",
+    name: "OpenAI gpt-image-1.5",
     description:
       "High-quality image generation with excellent prompt following and artistic capabilities.",
     features: [
@@ -33,7 +33,7 @@ const PROVIDERS: ProviderInfo[] = [
       "Style versatility",
       "Fast generation",
     ],
-    models: ["gpt-image-1"],
+    models: ["gpt-image-1.5"],
     icon: <Zap className="h-5 w-5" />,
     color: "from-emerald-500 to-teal-600",
     estimatedCost: "~$0.04-0.12 per image",

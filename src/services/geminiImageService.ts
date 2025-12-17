@@ -28,7 +28,7 @@ export async function generateImageWithGemini(
       // Gemini is designed for image understanding, not editing
       // We'll inform the user and suggest using OpenAI instead
       throw new Error(
-        "Image editing is not supported with Gemini. Gemini is designed for image understanding and analysis, not editing. Please use OpenAI (gpt-image-1) for image editing capabilities."
+        "Image editing is not supported with Gemini. Gemini is designed for image understanding and analysis, not editing. Please use OpenAI (gpt-image-1.5) for image editing capabilities."
       );
     } else {
       // Use Imagen 3 for text-to-image generation (this works well)
@@ -72,14 +72,20 @@ export async function generateImageWithGemini(
     }
 
     // Check for safety setting issues
-    if (errorMessage.includes("safetySetting") || errorMessage.includes("safety")) {
+    if (
+      errorMessage.includes("safetySetting") ||
+      errorMessage.includes("safety")
+    ) {
       throw new Error(
         "Content was blocked by Gemini safety filters. Please try with different content or prompt."
       );
     }
 
     // Check for authentication issues
-    if (errorMessage.includes("authentication") || errorMessage.includes("API key")) {
+    if (
+      errorMessage.includes("authentication") ||
+      errorMessage.includes("API key")
+    ) {
       throw new Error(
         "Invalid Gemini API key. Please check your API key and try again."
       );

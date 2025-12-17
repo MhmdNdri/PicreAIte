@@ -31,7 +31,7 @@ const PROVIDERS: Record<ProviderType, ProviderConfig> = {
   openai: {
     name: "OpenAI",
     description:
-      "Add your OpenAI API key to use gpt-image-1 for image editing.",
+      "Add your OpenAI API key to use gpt-image-1.5 for image editing.",
     placeholder: "sk-...",
     validator: (key: string) => key.startsWith("sk-"),
     asyncValidator: validateOpenAIApiKey,
