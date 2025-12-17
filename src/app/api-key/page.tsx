@@ -16,7 +16,8 @@ export default async function ApiKeyPage() {
       <div className="bg-white/80 dark:bg-[#1A1E33]/80 backdrop-blur-md rounded-xl px-6 py-8 shadow-lg border border-gray-200/10 dark:border-gray-700/10">
         <p className="text-sm text-gray-600 dark:text-gray-300 mb-6">
           Set your OpenAI API key to use your own account for image generation.
-          Your key is securely encrypted and stored in our database.
+          Your key is stored locally in your browser (localStorage) and is not
+          saved to our database.
         </p>
         <ApiKeyManager />
       </div>
