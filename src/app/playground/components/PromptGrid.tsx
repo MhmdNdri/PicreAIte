@@ -8,7 +8,7 @@ interface Prompt {
   promptDesc: string;
   description: string | null;
   imageUrl: string | null;
-  orginal_Image: string | null;
+  originalImage: string | null;
   createdAt: Date;
   updatedAt: Date;
   deletedAt: Date | null;
@@ -34,7 +34,7 @@ export function PromptGrid({ prompts, className = "" }: PromptGridProps) {
           name={prompt.name}
           type={prompt.type}
           imageUrl={prompt.imageUrl || ""}
-          orginal_Image={prompt.orginal_Image || ""}
+          originalImage={prompt.originalImage || ""}
         />
       ))}
     </div>

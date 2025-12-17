@@ -22,26 +22,25 @@ import { auth } from "@clerk/nextjs/server";
 import Link from "next/link";
 import { db } from "@/drizzle/db";
 import { PromptTable } from "@/drizzle/schema";
-import { isNull, and, not } from "drizzle-orm";
+import { isNull, and, not, sql } from "drizzle-orm";
 import { ShowcaseGallery } from "@/components/ShowcaseGallery";
 
 export default async function Home() {
   const { userId } = await auth();
 
-  // Fetch prompts directly from the database, like in playground
-  const prompts = await db
-    .select()
+  // Pick 8 random showcase images in SQL (avoid loading & shuffling all rows).
+  const promptsWithImages = await db
+    .select({ imageUrl: PromptTable.imageUrl })
     .from(PromptTable)
     .where(
       and(isNull(PromptTable.deletedAt), not(isNull(PromptTable.imageUrl)))
-    );
+    )
+    .orderBy(sql`RANDOM()`)
+    .limit(8);
 
-  // Shuffle and pick 8 random prompts with imageUrl
-  const shuffled = prompts.sort(() => 0.5 - Math.random());
-  const showcaseImages = shuffled
+  const showcaseImages = promptsWithImages
     .map((p) => p.imageUrl)
-    .filter((url): url is string => typeof url === "string" && !!url)
-    .slice(0, 8);
+    .filter((url): url is string => typeof url === "string" && !!url);
 
   return (
     <main className="min-h-screen scroll-smooth bg-gradient-to-b from-background to-muted text-foreground">

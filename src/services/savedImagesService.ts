@@ -52,7 +52,11 @@ export class SavedImagesService {
         imageKey: savedImage.imageKey,
       };
     } catch (error) {
-      throw new Error("Failed to save generated image");
+      // Preserve the original cause for server logs/debugging.
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      throw new Error("Failed to save generated image", {
+        cause: error as any,
+      });
     }
   }
 
@@ -77,7 +81,10 @@ export class SavedImagesService {
         expiresAt,
       });
     } catch (error) {
-      throw new Error("Failed to save image to database");
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      throw new Error("Failed to save image to database", {
+        cause: error as any,
+      });
     }
   }
 
@@ -114,7 +121,8 @@ export class SavedImagesService {
 
       return validImages;
     } catch (error) {
-      throw new Error("Failed to fetch user images");
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      throw new Error("Failed to fetch user images", { cause: error as any });
     }
   }
 
@@ -140,7 +148,8 @@ export class SavedImagesService {
 
       return result;
     } catch (error) {
-      throw new Error("Failed to delete image");
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      throw new Error("Failed to delete image", { cause: error as any });
     }
   }
 
@@ -173,7 +182,10 @@ export class SavedImagesService {
 
       return result;
     } catch (error) {
-      throw new Error("Failed to clean up expired images");
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      throw new Error("Failed to clean up expired images", {
+        cause: error as any,
+      });
     }
   }
 }

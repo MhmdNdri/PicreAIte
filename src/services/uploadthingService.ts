@@ -10,7 +10,11 @@ export class UploadThingService {
     mimeType: string
   ) {
     try {
-      const file = new File([imageData], fileName, { type: mimeType });
+      // Buffer isn't always typed as a valid BlobPart in TS DOM libs.
+      // Convert to Uint8Array to satisfy the File constructor types.
+      const file = new File([new Uint8Array(imageData)], fileName, {
+        type: mimeType,
+      });
       const response = await utapi.uploadFiles(file);
 
       if (response.error) {
@@ -22,7 +26,10 @@ export class UploadThingService {
         url: response.data.url,
       };
     } catch (error) {
-      throw new Error("Failed to upload file to UploadThing");
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      throw new Error("Failed to upload file to UploadThing", {
+        cause: error as any,
+      });
     }
   }
 
@@ -30,7 +37,10 @@ export class UploadThingService {
     try {
       await utapi.deleteFiles(fileKey);
     } catch (error) {
-      throw new Error("Failed to delete file from UploadThing");
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      throw new Error("Failed to delete file from UploadThing", {
+        cause: error as any,
+      });
     }
   }
 }

@@ -11,10 +11,8 @@ import { PromptTable } from "@/drizzle/schema";
 import { Loader2, Pencil, X } from "lucide-react";
 import { useAuth } from "@/lib/auth-context";
 
-type Prompt = typeof PromptTable.$inferSelect & { orginal_Image?: string };
-type PromptFormData = Partial<typeof PromptTable.$inferInsert> & {
-  orginal_Image?: string;
-};
+type Prompt = typeof PromptTable.$inferSelect;
+type PromptFormData = Partial<typeof PromptTable.$inferInsert>;
 
 // Form Input Component
 const FormInput = ({
@@ -166,8 +164,8 @@ const PromptForm = ({
     />
     <FormInput
       label="Original Image URL"
-      value={data.orginal_Image || ""}
-      onChange={(value) => onChange({ ...data, orginal_Image: value })}
+      value={(data.originalImage as string | undefined) || ""}
+      onChange={(value) => onChange({ ...data, originalImage: value })}
       placeholder="Enter original image URL"
     />
     <div className="flex justify-end space-x-2">

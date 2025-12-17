@@ -8,18 +8,18 @@ interface PromptCardProps {
   name: string;
   type: string;
   imageUrl: string | null;
-  orginal_Image?: string | null;
+  originalImage?: string | null;
 }
 
 export function PromptCard({
   name,
   type,
   imageUrl,
-  orginal_Image,
+  originalImage,
 }: PromptCardProps) {
   const [position, setPosition] = useState(70); // Default to 70% generated
 
-  if (!imageUrl && !orginal_Image) {
+  if (!imageUrl && !originalImage) {
     return (
       <Link
         href={`/playground/${name}`}
@@ -64,15 +64,15 @@ export function PromptCard({
       >
         <div className="relative aspect-square w-full">
           {/* Original Image (Background) */}
-          {orginal_Image && (
+          {originalImage && (
             <div className="absolute inset-0 z-10">
               <Image
-                src={orginal_Image}
+                src={originalImage}
                 alt={`${name} original`}
                 fill
                 className="object-cover"
                 sizes="(max-width: 640px) 50vw, (max-width: 768px) 50vw, (max-width: 1024px) 33vw, 25vw"
-                priority
+                unoptimized
               />
               {/* Original Label */}
               <div className="absolute top-3 right-3 bg-black/50 text-white text-[10px] font-medium px-1.5 py-0.5 rounded">
@@ -97,7 +97,7 @@ export function PromptCard({
                   fill
                   className="object-cover"
                   sizes="(max-width: 640px) 50vw, (max-width: 768px) 50vw, (max-width: 1024px) 33vw, 25vw"
-                  priority
+                  unoptimized
                 />
               </div>
               {/* Generated Label */}

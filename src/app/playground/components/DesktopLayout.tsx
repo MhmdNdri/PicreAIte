@@ -8,7 +8,7 @@ interface DesktopLayoutProps {
     type: string;
     description: string | null;
     imageUrl: string | null;
-    orginal_Image: string | null;
+    originalImage: string | null;
   };
   images: File[];
   onImagesChange: (files: File[]) => void;
@@ -58,15 +58,15 @@ export function DesktopLayout({
         {/* Style section - top row */}
         <div className="flex items-start gap-6 mb-8">
           {/* Original Image */}
-          {prompt.orginal_Image && (
+          {prompt.originalImage && (
             <div className="w-[240px] shrink-0">
               <div className="relative aspect-square rounded-lg overflow-hidden border border-gray-200 dark:border-gray-700">
                 <Image
-                  src={prompt.orginal_Image}
+                  src={prompt.originalImage}
                   alt="Original"
                   fill
                   className="object-cover"
-                  priority
+                  unoptimized
                 />
                 <div className="absolute top-2 left-2 bg-black/50 text-white text-xs font-medium px-2 py-1 rounded">
                   Original
@@ -83,7 +83,7 @@ export function DesktopLayout({
                 alt={prompt.name}
                 fill
                 className="object-cover"
-                priority
+                unoptimized
               />
               <div className="absolute top-2 left-2 bg-black/50 text-white text-xs font-medium px-2 py-1 rounded">
                 Transformed

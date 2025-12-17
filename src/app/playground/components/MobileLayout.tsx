@@ -8,7 +8,7 @@ interface MobileLayoutProps {
     type: string;
     description: string | null;
     imageUrl: string | null;
-    orginal_Image: string | null;
+    originalImage: string | null;
   };
   images: File[];
   onImagesChange: (files: File[]) => void;
@@ -56,15 +56,15 @@ export function MobileLayout({
       {/* Images row */}
       <div className="grid grid-cols-2 gap-3">
         {/* Original Image */}
-        {prompt.orginal_Image && (
+        {prompt.originalImage && (
           <div>
             <div className="relative aspect-square w-full rounded-lg overflow-hidden border border-gray-200 dark:border-gray-700">
               <Image
-                src={prompt.orginal_Image}
+                src={prompt.originalImage}
                 alt="Original"
                 fill
                 className="object-cover"
-                priority
+                unoptimized
               />
               <div className="absolute top-2 left-2 bg-black/50 text-white text-[10px] px-1.5 py-0.5 rounded">
                 Original
@@ -82,7 +82,7 @@ export function MobileLayout({
                 alt={prompt.name}
                 fill
                 className="object-cover"
-                priority
+                unoptimized
               />
               <div className="absolute top-2 left-2 bg-black/50 text-white text-[10px] px-1.5 py-0.5 rounded">
                 Transformed

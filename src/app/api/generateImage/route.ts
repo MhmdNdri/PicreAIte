@@ -1,5 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getAuth } from "@clerk/nextjs/server";
+import { badRequest, handleRouteError, unauthorized } from "@/lib/api-errors";
+import { generateOpenAiSchema } from "@/lib/validators";
 
 export const maxDuration = 300; // Increase to 5 minutes (300 seconds)
 export const runtime = "nodejs";
@@ -9,43 +11,45 @@ export async function POST(request: NextRequest) {
     const { userId } = getAuth(request);
 
     if (!userId) {
-      return NextResponse.json(
-        {
-          error: "You need to be logged in to use this feature",
-        },
-        { status: 401 }
-      );
+      throw unauthorized("You need to be logged in to use this feature");
     }
 
     const formData = await request.formData();
+    const raw = {
+      apiKey: (formData.get("apiKey") as string | null) ?? "",
+      prompt: (formData.get("prompt") as string | null) ?? "",
+      model: (formData.get("model") as string | null) ?? undefined,
+      n: (formData.get("n") as string | null) ?? undefined,
+      quality: (formData.get("quality") as string | null) ?? undefined,
+      size: (formData.get("size") as string | null) ?? undefined,
+      user: (formData.get("user") as string | null) ?? undefined,
+    };
 
-    const apiKey = formData.get("apiKey") as string;
-
-    if (!apiKey) {
-      return NextResponse.json(
-        {
-          error:
-            "OpenAI API key is required. Please set your API key in the settings.",
-        },
-        { status: 400 }
-      );
+    const parsed = generateOpenAiSchema.safeParse(raw);
+    if (!parsed.success) {
+      throw badRequest("Invalid request", parsed.error.flatten());
     }
 
-    const prompt = formData.get("prompt") as string;
-    const model = (formData.get("model") as string) || "gpt-image-1"; // Reverted to correct model name
-    const n = Number(formData.get("n")) || 1;
-    const quality = (formData.get("quality") as string) || "auto"; // gpt-image-1 supports auto/low/medium/high
-    const size = (formData.get("size") as string) || "1024x1024";
-    const user = formData.get("user") as string;
+    const apiKey = parsed.data.apiKey;
+    const prompt = parsed.data.prompt;
+    const model = parsed.data.model || "gpt-image-1";
+    const n = parsed.data.n ?? 1;
+    const quality = parsed.data.quality || "auto";
+    const size = parsed.data.size || "1024x1024";
+    const user = parsed.data.user;
 
     const imageFiles = formData.getAll("image[]");
     const maskFile = formData.get("mask") as File | null;
+
+    if (imageFiles.length === 0) {
+      throw badRequest("At least one image is required");
+    }
 
     const openaiFormData = new FormData();
     openaiFormData.append("prompt", prompt);
     openaiFormData.append("model", model);
     openaiFormData.append("n", n.toString());
-    
+
     // gpt-image-1 supports quality parameter: auto, low, medium, high
     openaiFormData.append("quality", quality);
     openaiFormData.append("size", size);
@@ -54,12 +58,8 @@ export async function POST(request: NextRequest) {
       openaiFormData.append("user", user);
     }
 
-    imageFiles.forEach((imageFile, index) => {
-      if (index === 0) {
-        openaiFormData.append("image", imageFile as File);
-      } else {
-        openaiFormData.append("image", imageFile as File);
-      }
+    imageFiles.forEach((imageFile) => {
+      openaiFormData.append("image", imageFile as File);
     });
 
     if (maskFile) {
@@ -106,29 +106,27 @@ export async function POST(request: NextRequest) {
 
       const data = await response.json();
       return NextResponse.json(data);
-      
     } catch (fetchError: any) {
       clearTimeout(timeoutId);
-      
-      if (fetchError.name === 'AbortError') {
+
+      if (fetchError.name === "AbortError") {
         return NextResponse.json(
-          { 
-            error: "Request timed out. High-quality image generation can take several minutes. Please try with lower quality settings or try again later." 
+          {
+            error:
+              "Request timed out. High-quality image generation can take several minutes. Please try with lower quality settings or try again later.",
           },
           { status: 408 }
         );
       }
-      
+
       throw fetchError; // Re-throw other errors to be caught by outer try-catch
     }
   } catch (error) {
-    console.error("Error in generate-image API route:", error);
-
-    return NextResponse.json(
-      {
-        error: "Something went wrong. Please check your API key and try again.",
-      },
-      { status: 500 }
-    );
+    return handleRouteError({
+      error,
+      fallbackMessage:
+        "Something went wrong. Please check your API key and try again.",
+      context: "api/generateImage POST",
+    });
   }
 }

@@ -2,6 +2,12 @@ import { NextResponse } from "next/server";
 import { db } from "@/drizzle/db";
 import { PromptTable } from "@/drizzle/schema";
 import { eq, isNull } from "drizzle-orm";
+import { handleRouteError, badRequest, notFound } from "@/lib/api-errors";
+import {
+  promptDeleteSchema,
+  promptInsertSchema,
+  promptUpdateSchema,
+} from "@/lib/validators";
 
 export async function GET() {
   try {
@@ -11,36 +17,34 @@ export async function GET() {
       .where(isNull(PromptTable.deletedAt));
     return NextResponse.json(prompts);
   } catch (error) {
-    return NextResponse.json(
-      { error: "Failed to fetch prompts" },
-      { status: 500 }
-    );
+    return handleRouteError({
+      error,
+      fallbackMessage: "Failed to fetch prompts",
+      context: "api/prompts GET",
+    });
   }
 }
 
 export async function POST(request: Request) {
   try {
-    const data = await request.json();
+    const json = await request.json().catch((cause) => {
+      throw badRequest("Invalid JSON body", undefined, cause);
+    });
 
-    // Validate required fields
-    if (!data.name || !data.type || !data.promptDesc) {
-      return NextResponse.json(
-        {
-          error: "Missing required fields",
-          received: {
-            name: data.name,
-            type: data.type,
-            promptDesc: data.promptDesc,
-          },
-        },
-        { status: 400 }
-      );
+    const parsed = promptInsertSchema.safeParse(json);
+    if (!parsed.success) {
+      throw badRequest("Invalid request body", parsed.error.flatten());
     }
 
     const [newPrompt] = await db
       .insert(PromptTable)
       .values({
-        ...data,
+        name: parsed.data.name,
+        type: parsed.data.type,
+        promptDesc: parsed.data.promptDesc,
+        description: parsed.data.description ?? null,
+        imageUrl: parsed.data.imageUrl ?? null,
+        originalImage: parsed.data.originalImage ?? null,
         createdAt: new Date(),
         updatedAt: new Date(),
       })
@@ -48,83 +52,65 @@ export async function POST(request: Request) {
 
     return NextResponse.json(newPrompt);
   } catch (error) {
-    console.error("Error creating prompt:", error);
-    return NextResponse.json(
-      {
-        error: "Failed to create prompt",
-        details: error instanceof Error ? error.message : "Unknown error",
-      },
-      { status: 500 }
-    );
+    return handleRouteError({
+      error,
+      fallbackMessage: "Failed to create prompt",
+      context: "api/prompts POST",
+    });
   }
 }
 
 export async function PUT(request: Request) {
   try {
-    const data = await request.json();
+    const json = await request.json().catch((cause) => {
+      throw badRequest("Invalid JSON body", undefined, cause);
+    });
 
-    if (!data.id) {
-      return NextResponse.json({ error: "Missing prompt ID" }, { status: 400 });
-    }
-
-    // Validate required fields
-    if (!data.name || !data.type || !data.promptDesc) {
-      return NextResponse.json(
-        {
-          error: "Missing required fields",
-          received: {
-            name: data.name,
-            type: data.type,
-            promptDesc: data.promptDesc,
-          },
-        },
-        { status: 400 }
-      );
+    const parsed = promptUpdateSchema.safeParse(json);
+    if (!parsed.success) {
+      throw badRequest("Invalid request body", parsed.error.flatten());
     }
 
     // Prepare the update data
     const updateData = {
-      name: data.name,
-      type: data.type,
-      promptDesc: data.promptDesc,
-      description: data.description || null,
-      imageUrl: data.imageUrl || null,
-      orginal_Image: data.orginal_Image || null,
+      name: parsed.data.name,
+      type: parsed.data.type,
+      promptDesc: parsed.data.promptDesc,
+      description: parsed.data.description ?? null,
+      imageUrl: parsed.data.imageUrl ?? null,
+      originalImage: parsed.data.originalImage ?? null,
       updatedAt: new Date(),
     };
 
     const [updatedPrompt] = await db
       .update(PromptTable)
       .set(updateData)
-      .where(eq(PromptTable.id, data.id))
+      .where(eq(PromptTable.id, parsed.data.id))
       .returning();
 
     if (!updatedPrompt) {
-      return NextResponse.json({ error: "Prompt not found" }, { status: 404 });
+      throw notFound("Prompt not found");
     }
 
     return NextResponse.json(updatedPrompt);
   } catch (error) {
-    console.error("Error updating prompt:", error);
-    return NextResponse.json(
-      {
-        error: "Failed to update prompt",
-        details: error instanceof Error ? error.message : "Unknown error",
-      },
-      { status: 500 }
-    );
+    return handleRouteError({
+      error,
+      fallbackMessage: "Failed to update prompt",
+      context: "api/prompts PUT",
+    });
   }
 }
 
 export async function DELETE(request: Request) {
   try {
-    const { id } = await request.json();
+    const json = await request.json().catch((cause) => {
+      throw badRequest("Invalid JSON body", undefined, cause);
+    });
 
-    if (!id) {
-      return NextResponse.json(
-        { error: "Prompt ID is required" },
-        { status: 400 }
-      );
+    const parsed = promptDeleteSchema.safeParse(json);
+    if (!parsed.success) {
+      throw badRequest("Invalid request body", parsed.error.flatten());
     }
 
     const [deletedPrompt] = await db
@@ -132,14 +118,15 @@ export async function DELETE(request: Request) {
       .set({
         deletedAt: new Date(),
       })
-      .where(eq(PromptTable.id, id))
+      .where(eq(PromptTable.id, parsed.data.id))
       .returning();
 
     return NextResponse.json(deletedPrompt);
   } catch (error) {
-    return NextResponse.json(
-      { error: "Failed to delete prompt" },
-      { status: 500 }
-    );
+    return handleRouteError({
+      error,
+      fallbackMessage: "Failed to delete prompt",
+      context: "api/prompts DELETE",
+    });
   }
 }
