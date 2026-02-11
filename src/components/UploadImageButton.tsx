@@ -73,7 +73,7 @@ export function UploadImageButton({
       format: "PNG",
       quality: 1,
     });
-    return new Blob([pngBuffer], { type: "image/png" });
+    return new Blob([new Uint8Array(pngBuffer)], { type: "image/png" });
   }, []);
 
   const handleUpload = useCallback(async () => {

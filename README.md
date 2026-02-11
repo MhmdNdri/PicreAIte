@@ -7,7 +7,7 @@ A Next.js application with Drizzle ORM and PostgreSQL.
 ### Prerequisites
 
 - Node.js 18 or higher
-- PNPM 8 or higher
+- Bun 1.3 or higher
 - PostgreSQL database
 - Uploadthing account for image storage
 
@@ -17,7 +17,7 @@ A Next.js application with Drizzle ORM and PostgreSQL.
 2. Install dependencies:
 
    ```bash
-   pnpm install
+   bun install
    ```
 
 3. Set up environment variables:
@@ -29,18 +29,18 @@ A Next.js application with Drizzle ORM and PostgreSQL.
 4. Generate database migrations:
 
    ```bash
-   pnpm db:generate
+   bun run db:generate
    ```
 
 5. Push migrations to the database:
 
    ```bash
-   pnpm db:push
+   bun run db:push
    ```
 
 6. Start the development server:
    ```bash
-   pnpm dev
+   bun run dev
    ```
 
 ## Database Structure
@@ -82,14 +82,14 @@ The application uses the following environment variables:
 
 ## Available Scripts
 
-- `pnpm dev`: Start the development server
-- `pnpm build`: Build the application
-- `pnpm start`: Start the production server
-- `pnpm lint`: Run ESLint
-- `pnpm format`: Format code with Prettier
-- `pnpm db:generate`: Generate database migrations
-- `pnpm db:push`: Push migrations to the database
-- `pnpm db:studio`: Open Drizzle Studio
+- `bun run dev`: Start the development server
+- `bun run build`: Build the application
+- `bun run start`: Start the production server
+- `bun run lint`: Run ESLint
+- `bun run format`: Format code with Prettier
+- `bun run db:generate`: Generate database migrations
+- `bun run db:push`: Push migrations to the database
+- `bun run db:studio`: Open Drizzle Studio
 
 This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
 
