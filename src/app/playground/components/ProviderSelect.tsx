@@ -13,8 +13,15 @@ import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { Zap, Sparkles, AlertCircle } from "lucide-react";
 import Link from "next/link";
+import {
+  GEMINI_IMAGE_MODELS,
+  type GeminiImageModelKey,
+} from "@/lib/gemini-models";
 
-type ProviderType = "openai" | "openai-mini" | "gemini";
+export type ProviderType =
+  | "openai"
+  | "openai-mini"
+  | GeminiImageModelKey;
 
 interface ProviderSelectProps {
   onProviderSelect: (provider: ProviderType, apiKey: string) => void;
@@ -22,7 +29,7 @@ interface ProviderSelectProps {
   disabled?: boolean;
 }
 
-const PROVIDERS = {
+const OPENAI_PROVIDERS = {
   openai: {
     name: "gpt-image-1.5",
     displayName: "OpenAI Standard",
@@ -43,17 +50,24 @@ const PROVIDERS = {
       "bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-300",
     description: "Cost-effective image generation",
   },
-  gemini: {
-    name: "Imagen 3",
-    displayName: "Google Gemini",
+};
+
+function getProviderDisplay(provider: ProviderType) {
+  if (provider === "openai" || provider === "openai-mini") {
+    return OPENAI_PROVIDERS[provider];
+  }
+  const config = GEMINI_IMAGE_MODELS[provider as GeminiImageModelKey];
+  return {
+    name: config.id,
+    displayName: config.name,
     icon: <Sparkles className="h-4 w-4" />,
     color: "text-blue-600 dark:text-blue-400",
-    badge: "Fast",
+    badge: "Image edit",
     badgeColor:
       "bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-300",
-    description: "May not be available in all countries",
-  },
-};
+    description: config.description,
+  };
+}
 
 export function ProviderSelect({
   onProviderSelect,
@@ -72,15 +86,21 @@ export function ProviderSelect({
         providers.push("openai");
         providers.push("openai-mini");
       }
-      if (hasApiKey("gemini")) providers.push("gemini");
+      if (hasApiKey("gemini")) {
+        (Object.keys(GEMINI_IMAGE_MODELS) as GeminiImageModelKey[]).forEach(
+          (key) => providers.push(key)
+        );
+      }
       setAvailableProviders(providers);
     }
   }, [isLoaded, hasApiKey]);
 
   const handleProviderChange = (provider: string) => {
     const typedProvider = provider as ProviderType;
-    // Both openai and openai-mini use the same OpenAI API key
-    const keyType = typedProvider === "openai-mini" ? "openai" : typedProvider;
+    const keyType =
+      typedProvider === "openai" || typedProvider === "openai-mini"
+        ? "openai"
+        : "gemini";
     const apiKey = getApiKey(keyType as "openai" | "gemini");
     if (apiKey) {
       onProviderSelect(typedProvider, apiKey);
@@ -121,7 +141,7 @@ export function ProviderSelect({
   }
 
   const selectedProviderData = selectedProvider
-    ? PROVIDERS[selectedProvider]
+    ? getProviderDisplay(selectedProvider)
     : null;
 
   return (
@@ -152,32 +172,33 @@ export function ProviderSelect({
           )}
         </SelectTrigger>
         <SelectContent className="bg-white dark:bg-gray-900 border-gray-200 dark:border-gray-700">
-          {availableProviders.map((provider) => (
-            <SelectItem
-              key={provider}
-              value={provider}
-              className="cursor-pointer focus:bg-gray-100 dark:focus:bg-gray-800 py-3"
-            >
-              <div className="flex flex-col gap-1.5">
-                <div className="flex items-center gap-2">
-                  <span className={PROVIDERS[provider].color}>
-                    {PROVIDERS[provider].icon}
-                  </span>
-                  <span className="font-medium text-gray-900 dark:text-gray-100">
-                    {PROVIDERS[provider].displayName}
-                  </span>
-                  <Badge
-                    className={`ml-auto ${PROVIDERS[provider].badgeColor} border-0 text-xs`}
-                  >
-                    {PROVIDERS[provider].badge}
-                  </Badge>
+          {availableProviders.map((provider) => {
+            const data = getProviderDisplay(provider);
+            return (
+              <SelectItem
+                key={provider}
+                value={provider}
+                className="cursor-pointer focus:bg-gray-100 dark:focus:bg-gray-800 py-3"
+              >
+                <div className="flex flex-col gap-1.5">
+                  <div className="flex items-center gap-2">
+                    <span className={data.color}>{data.icon}</span>
+                    <span className="font-medium text-gray-900 dark:text-gray-100">
+                      {data.displayName}
+                    </span>
+                    <Badge
+                      className={`ml-auto ${data.badgeColor} border-0 text-xs`}
+                    >
+                      {data.badge}
+                    </Badge>
+                  </div>
+                  <p className="text-xs text-gray-500 dark:text-gray-400 pl-6">
+                    {data.description}
+                  </p>
                 </div>
-                <p className="text-xs text-gray-500 dark:text-gray-400 pl-6">
-                  {PROVIDERS[provider].description}
-                </p>
-              </div>
-            </SelectItem>
-          ))}
+              </SelectItem>
+            );
+          })}
         </SelectContent>
       </Select>
       {selectedProviderData && (
@@ -188,3 +209,4 @@ export function ProviderSelect({
     </div>
   );
 }
+

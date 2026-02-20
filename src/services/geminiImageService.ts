@@ -1,15 +1,13 @@
+import { GoogleGenAI } from "@google/genai";
 import {
-  GoogleGenAI,
-  SafetyFilterLevel,
-  PersonGeneration,
-} from "@google/genai";
+  GEMINI_IMAGE_MODELS,
+  type GeminiImageModelKey,
+} from "@/lib/gemini-models";
 
 export interface GeminiImageOptions {
+  model: GeminiImageModelKey;
   aspectRatio?: "1:1" | "3:4" | "4:3" | "9:16" | "16:9";
-  numberOfImages?: number;
-  safetyFilterLevel?: SafetyFilterLevel;
-  personGeneration?: PersonGeneration;
-  inputImage?: {
+  inputImage: {
     imageBytes: string;
     mimeType: string;
   };
@@ -18,60 +16,72 @@ export interface GeminiImageOptions {
 export async function generateImageWithGemini(
   apiKey: string,
   prompt: string,
-  options: GeminiImageOptions = {}
+  options: GeminiImageOptions
 ) {
+  const modelConfig = GEMINI_IMAGE_MODELS[options.model];
+  if (!modelConfig) {
+    throw new Error(`Unknown Gemini model: ${options.model}`);
+  }
+
   try {
     const ai = new GoogleGenAI({ apiKey });
 
-    if (options.inputImage) {
-      // IMPORTANT: Gemini doesn't actually support image editing like OpenAI's gpt-image-1
-      // Gemini is designed for image understanding, not editing
-      // We'll inform the user and suggest using OpenAI instead
-      throw new Error(
-        "Image editing is not supported with Gemini. Gemini is designed for image understanding and analysis, not editing. Please use OpenAI (gpt-image-1.5) for image editing capabilities."
-      );
-    } else {
-      // Use Imagen 3 for text-to-image generation (this works well)
-      const response = await ai.models.generateImages({
-        model: "imagen-3.0-generate-002",
-        prompt: prompt,
-        config: {
-          numberOfImages: options.numberOfImages || 1,
-          aspectRatio: options.aspectRatio || "1:1",
-          safetyFilterLevel:
-            options.safetyFilterLevel || SafetyFilterLevel.BLOCK_LOW_AND_ABOVE,
-          personGeneration:
-            options.personGeneration || PersonGeneration.ALLOW_ADULT,
+    const contents: Array<{ text?: string; inlineData?: { mimeType: string; data: string } }> = [
+      { text: prompt },
+      {
+        inlineData: {
+          mimeType: options.inputImage.mimeType,
+          data: options.inputImage.imageBytes,
         },
-      });
+      },
+    ];
 
-      if (!response.generatedImages || response.generatedImages.length === 0) {
-        throw new Error("No images generated");
-      }
-
-      const generatedImage = response.generatedImages[0];
-
-      if (!generatedImage?.image?.imageBytes) {
-        throw new Error("Generated image data is missing");
-      }
-
-      return {
-        imageBytes: generatedImage.image.imageBytes,
-        mimeType: "image/png",
-      };
+    // Build config - imageConfig for aspect ratio (API supports it; SDK types may not include it yet)
+    const config: Record<string, unknown> = {
+      responseModalities: ["TEXT", "IMAGE"],
+    };
+    if (options.aspectRatio) {
+      config.imageConfig = { aspectRatio: options.aspectRatio };
     }
+
+    const response = await ai.models.generateContent({
+      model: modelConfig.id,
+      contents,
+      config: config as object,
+    });
+
+    for (const part of response.candidates?.[0]?.content?.parts ?? []) {
+      if (part.inlineData?.data) {
+        return {
+          imageBytes: part.inlineData.data,
+          mimeType: part.inlineData.mimeType || "image/png",
+        };
+      }
+    }
+
+    throw new Error("No image data in response");
   } catch (error) {
     console.error("Error generating image with Gemini:", error);
-    const errorMessage = error instanceof Error ? error.message : String(error);
 
-    // Check for geographic restrictions
+    // Extract full error message (API errors may nest details)
+    let errorMessage = error instanceof Error ? error.message : String(error);
+    const err = error as Error & {
+      cause?: { message?: string };
+      body?: unknown;
+      status?: number;
+    };
+    if (err.cause?.message) errorMessage += ` | ${err.cause.message}`;
+    if (err.body && typeof err.body === "object") {
+      const bodyMsg = (err.body as { error?: { message?: string }; message?: string }).error?.message
+        ?? (err.body as { message?: string }).message;
+      if (bodyMsg) errorMessage += ` | ${bodyMsg}`;
+    }
+
     if (errorMessage.includes("not available in your country")) {
       throw new Error(
         "Gemini image generation is not available in your country. Please try using OpenAI instead."
       );
     }
-
-    // Check for safety setting issues
     if (
       errorMessage.includes("safetySetting") ||
       errorMessage.includes("safety")
@@ -80,20 +90,26 @@ export async function generateImageWithGemini(
         "Content was blocked by Gemini safety filters. Please try with different content or prompt."
       );
     }
-
-    // Check for authentication issues
     if (
       errorMessage.includes("authentication") ||
-      errorMessage.includes("API key")
+      errorMessage.includes("API key") ||
+      errorMessage.includes("API_KEY_INVALID") ||
+      errorMessage.includes("403") ||
+      errorMessage.includes("401")
     ) {
       throw new Error(
         "Invalid Gemini API key. Please check your API key and try again."
       );
     }
-
-    // Pass through our custom image editing error message
-    if (errorMessage.includes("Image editing is not supported with Gemini")) {
-      throw error;
+    if (
+      errorMessage.includes("429") ||
+      errorMessage.includes("Too Many Requests") ||
+      errorMessage.includes("quota") ||
+      errorMessage.includes("Quota exceeded")
+    ) {
+      throw new Error(
+        "Gemini quota exceeded. The free tier has limited requests. Add billing at https://aistudio.google.com or try again later."
+      );
     }
 
     throw new Error(`Gemini image generation failed: ${errorMessage}`);

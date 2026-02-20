@@ -33,9 +33,15 @@ export const generateOpenAiSchema = z.object({
   user: z.string().optional(),
 });
 
+export const GEMINI_MODEL_KEYS = [
+  "gemini-nano-banana-pro",
+  "gemini-nano-banana",
+] as const;
+
 export const generateGeminiSchema = z.object({
   apiKey: z.string().min(1),
   prompt: z.string().min(1),
+  model: z.enum(GEMINI_MODEL_KEYS),
   aspectRatio: z.enum(["1:1", "3:4", "4:3", "9:16", "16:9"]).optional(),
 });
 

@@ -22,7 +22,7 @@ interface MobileLayoutProps {
   result: string | null;
   error: string | null;
   onReset: () => void;
-  selectedProvider?: "openai" | "openai-mini" | "gemini";
+  selectedProvider?: string;
   usage?: {
     input_tokens: number;
     input_tokens_details: {

@@ -1,6 +1,9 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getAuth } from "@clerk/nextjs/server";
-import { generateImageWithGemini } from "@/services/geminiImageService";
+import {
+  generateImageWithGemini,
+  type GeminiImageOptions,
+} from "@/services/geminiImageService";
 import { badRequest, handleRouteError, unauthorized } from "@/lib/api-errors";
 import { generateGeminiSchema } from "@/lib/validators";
 
@@ -22,10 +25,11 @@ export async function POST(request: NextRequest) {
     const raw = {
       prompt: (formData.get("prompt") as string | null) ?? "",
       apiKey: (formData.get("apiKey") as string | null) ?? "",
+      model: (formData.get("model") as string | null) ?? undefined,
       aspectRatio: (formData.get("aspectRatio") as string | null) ?? undefined,
     };
 
-    // Get image file for editing
+    // Get image file for editing (only used by Nano Banana models)
     const imageFile = formData.get("image") as File | null;
 
     const parsed = generateGeminiSchema.safeParse(raw);
@@ -33,23 +37,23 @@ export async function POST(request: NextRequest) {
       throw badRequest("Invalid request", parsed.error.flatten());
     }
 
-    let geminiOptions: any = {
+    if (!imageFile) {
+      throw badRequest("Image is required for Gemini image editing");
+    }
+
+    const imageBuffer = Buffer.from(await imageFile.arrayBuffer());
+    const base64Image = imageBuffer.toString("base64");
+
+    const geminiOptions: GeminiImageOptions = {
+      model: parsed.data.model,
       aspectRatio:
         (parsed.data.aspectRatio as "1:1" | "3:4" | "4:3" | "9:16" | "16:9") ||
         "1:1",
-      numberOfImages: 1,
-    };
-
-    // If image is provided, add it for editing
-    if (imageFile) {
-      const imageBuffer = Buffer.from(await imageFile.arrayBuffer());
-      const base64Image = imageBuffer.toString("base64");
-
-      geminiOptions.inputImage = {
+      inputImage: {
         imageBytes: base64Image,
-        mimeType: imageFile.type,
-      };
-    }
+        mimeType: imageFile.type || "image/png",
+      },
+    };
 
     // Call Gemini API
     const result = await generateImageWithGemini(
@@ -71,21 +75,27 @@ export async function POST(request: NextRequest) {
       ],
     });
   } catch (error) {
-    // Convert known Gemini errors to 4xx so the client gets a helpful message.
     const msg = error instanceof Error ? error.message : String(error);
+    // Known user-fixable errors → 4xx with message
     if (
       msg.includes("not available in your country") ||
       msg.includes("Invalid Gemini API key") ||
-      msg.includes("Image editing is not supported with Gemini") ||
       msg.includes("blocked by Gemini safety")
     ) {
       return NextResponse.json({ error: msg }, { status: 400 });
     }
+    if (msg.includes("quota exceeded") || msg.includes("Quota exceeded")) {
+      return NextResponse.json({ error: msg }, { status: 429 });
+    }
+    // Pass through our Gemini errors (they include the underlying cause)
+    if (msg.startsWith("Gemini image generation failed:")) {
+      return NextResponse.json({ error: msg }, { status: 400 });
+    }
 
-    return handleRouteError({
-      error,
-      fallbackMessage: "Gemini image generation failed",
-      context: "api/generateImageGemini POST",
-    });
+    console.error("[api/generateImageGemini POST]", error);
+    return NextResponse.json(
+      { error: msg || "Gemini image generation failed" },
+      { status: 500 }
+    );
   }
 }

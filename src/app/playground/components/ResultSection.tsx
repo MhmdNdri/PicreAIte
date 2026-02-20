@@ -28,14 +28,15 @@ interface ResultSectionProps {
   onReset: () => void;
   isMobile?: boolean;
   usage?: Usage;
-  selectedProvider?: "openai" | "openai-mini" | "gemini";
+  selectedProvider?: string;
 }
 
-const calculateCost = (
-  usage: Usage,
-  provider?: "openai" | "openai-mini" | "gemini"
-): number => {
+const calculateCost = (usage: Usage, provider?: string): number => {
   // Pricing for gpt-image-1-mini is approximately 3x cheaper
+  // Gemini models have different pricing - return 0 for now
+  if (provider?.startsWith("gemini-")) {
+    return 0;
+  }
   const isMini = provider === "openai-mini";
 
   // Input token pricing: $10/1M for standard, ~$3.33/1M for mini

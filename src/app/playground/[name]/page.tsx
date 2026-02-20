@@ -18,9 +18,7 @@ import { use } from "react";
 import { MobileLayout } from "../components/MobileLayout";
 import { DesktopLayout } from "../components/DesktopLayout";
 import { useApiKeys } from "@/hooks/useApiKeys";
-import { ProviderSelect } from "../components/ProviderSelect";
-
-type ProviderType = "openai" | "openai-mini" | "gemini";
+import { ProviderSelect, type ProviderType } from "../components/ProviderSelect";
 
 async function fetchPrompt(name: string) {
   const response = await fetch(`/api/prompts/${name}`);
@@ -149,6 +147,7 @@ export default function PromptPage({
         return;
       }
 
+      // All providers require image for editing
       if (images.length === 0) {
         alert("Please upload an image first");
         return;
@@ -174,11 +173,19 @@ export default function PromptPage({
         });
 
         generateOpenAIMutation(formData);
-      } else if (selectedProvider === "gemini") {
+      } else if (selectedProvider) {
+        // Nano Banana models (image editing)
         formData.append("apiKey", selectedApiKey);
-        formData.append("aspectRatio", "1:1");
+        formData.append("model", selectedProvider);
+        // Map size to Gemini aspect ratio (1:1, 3:4, 4:3, 9:16, 16:9)
+        // 1536x1024 = 3:2 → 4:3 (closest landscape); 1024x1536 = 2:3 → 3:4 (closest portrait)
+        const aspectRatioMap: Record<string, string> = {
+          "1024x1024": "1:1",
+          "1536x1024": "4:3",
+          "1024x1536": "3:4",
+        };
+        formData.append("aspectRatio", aspectRatioMap[size] || "1:1");
         formData.append("image", images[0]!);
-
         generateGeminiMutation(formData);
       }
     },
@@ -212,7 +219,7 @@ export default function PromptPage({
         setSelectedProvider("openai-mini");
         setSelectedApiKey(openaiKey);
       } else if (geminiKey) {
-        setSelectedProvider("gemini");
+        setSelectedProvider("gemini-nano-banana");
         setSelectedApiKey(geminiKey);
       }
     }

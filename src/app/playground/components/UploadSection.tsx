@@ -27,7 +27,7 @@ interface UploadSectionProps {
   onSubmit: (e: React.FormEvent) => void;
   isLoading: boolean;
   isMobile?: boolean;
-  selectedProvider?: "openai" | "openai-mini" | "gemini";
+  selectedProvider?: "openai" | "openai-mini" | (string & {});
 }
 
 const MAX_IMAGES = 1;
@@ -322,7 +322,7 @@ export function UploadSection({
       <form onSubmit={onSubmit} className="space-y-6">
         <div
           className={`grid gap-6 ${
-            selectedProvider === "gemini" ? "grid-cols-1" : "grid-cols-2"
+            selectedProvider?.startsWith("gemini-") ? "grid-cols-1" : "grid-cols-2"
           }`}
         >
           {/* Quality selector - only for OpenAI models */}
@@ -371,7 +371,9 @@ export function UploadSection({
           {/* Size selector */}
           <div>
             <Label htmlFor="size" className="text-sm block mb-2">
-              {selectedProvider === "gemini" ? "Aspect Ratio" : "Output Size"}
+              {selectedProvider?.startsWith("gemini-")
+                ? "Aspect Ratio"
+                : "Output Size"}
             </Label>
             <Select value={size} onValueChange={onSizeChange}>
               <SelectTrigger
@@ -387,7 +389,7 @@ export function UploadSection({
               </SelectContent>
             </Select>
             <p className="text-xs text-muted-foreground mt-1">
-              {selectedProvider === "gemini"
+              {selectedProvider?.startsWith("gemini-")
                 ? "Choose the aspect ratio for your result"
                 : selectedProvider === "openai-mini"
                 ? "Choose your output dimensions (cost-effective pricing)"
@@ -396,12 +398,12 @@ export function UploadSection({
           </div>
         </div>
 
-        {/* Provider-specific info */}
-        {selectedProvider === "gemini" && (
+        {/* Provider-specific info for Nano Banana */}
+        {selectedProvider?.startsWith("gemini-") && (
           <div className="p-3 bg-blue-50 dark:bg-blue-900/20 rounded-md border border-blue-200 dark:border-blue-800">
             <p className="text-xs text-blue-700 dark:text-blue-300">
-              <strong>Gemini Note:</strong> Uses Imagen 3 for high-quality image
-              transformation. Quality is automatically optimized.
+              <strong>Nano Banana:</strong> Image editing with your prompt.
+              Upload an image to transform it.
             </p>
           </div>
         )}

@@ -39,7 +39,7 @@ const PROVIDERS: Record<ProviderType, ProviderConfig> = {
   gemini: {
     name: "Google Gemini",
     description:
-      "Add your Google AI API key to use Imagen 3 for image generation.",
+      "Add your Google AI API key for Nano Banana and Nano Banana Pro image editing.",
     placeholder: "AI...",
     validator: (key: string) => key.length > 10,
     asyncValidator: validateGeminiApiKey,
