@@ -2,6 +2,7 @@
 
 import { useQuery } from "@tanstack/react-query";
 import { useMemo } from "react";
+import Image from "next/image";
 
 async function fetchPrompts() {
   const res = await fetch("/api/prompts");
@@ -66,12 +67,13 @@ export function ShowcaseGallery() {
           className="group relative aspect-square transform overflow-hidden rounded-lg shadow-lg transition-all duration-300 hover:shadow-xl hover:scale-105"
           data-aos="fade-up"
         >
-          <img
+          <Image
             src={src}
             alt={`Showcase image ${index + 1}`}
             className="h-full w-full object-cover transition-transform duration-300 group-hover:scale-110"
             width={400}
             height={400}
+            sizes="(max-width: 640px) 50vw, (max-width: 1024px) 33vw, 25vw"
           />
           <div className="absolute inset-0 bg-black/20 opacity-0 transition-opacity duration-300 group-hover:opacity-100" />
         </div>

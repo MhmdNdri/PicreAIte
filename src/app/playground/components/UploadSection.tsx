@@ -10,7 +10,6 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import heicConvert from "heic-convert";
 import { useState, useCallback } from "react";
 
 export type QualityOption = "low" | "medium" | "high";
@@ -48,6 +47,8 @@ const isFileSizeValid = (file: File): boolean => {
 // Helper function to progressively compress HEIC images
 const compressHeicImage = async (file: File): Promise<File | null> => {
   try {
+    // Load heic-convert only when needed to keep initial JS bundle smaller.
+    const { default: heicConvert } = await import("heic-convert");
     const buffer = await file.arrayBuffer();
     let quality = 0.99; // Start with good quality
     let jpegBuffer: Uint8Array;
