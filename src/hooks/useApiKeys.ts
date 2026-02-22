@@ -5,6 +5,7 @@ import { useState, useEffect, useCallback } from "react";
 export interface ApiKeys {
   openai?: string;
   gemini?: string;
+  grok?: string;
 }
 
 export function useApiKeys() {
@@ -17,9 +18,11 @@ export function useApiKeys() {
 
       const openaiKey = localStorage.getItem("openai_api_key");
       const geminiKey = localStorage.getItem("gemini_api_key");
+      const grokKey = localStorage.getItem("grok_api_key");
 
       if (openaiKey) savedKeys.openai = openaiKey;
       if (geminiKey) savedKeys.gemini = geminiKey;
+      if (grokKey) savedKeys.grok = grokKey;
 
       setApiKeys(savedKeys);
       setIsLoaded(true);
@@ -55,6 +58,7 @@ export function useApiKeys() {
     if (typeof window !== "undefined") {
       localStorage.removeItem("openai_api_key");
       localStorage.removeItem("gemini_api_key");
+      localStorage.removeItem("grok_api_key");
       setApiKeys({});
     }
   }, []);

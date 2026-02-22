@@ -19,6 +19,7 @@ import { MobileLayout } from "../components/MobileLayout";
 import { DesktopLayout } from "../components/DesktopLayout";
 import { useApiKeys } from "@/hooks/useApiKeys";
 import { ProviderSelect, type ProviderType } from "../components/ProviderSelect";
+import { GROK_IMAGE_MODELS } from "@/lib/grok-models";
 
 async function fetchPrompt(name: string) {
   const response = await fetch(`/api/prompts/${name}`);
@@ -44,6 +45,20 @@ async function generateImageOpenAI(data: FormData) {
 
 async function generateImageGemini(data: FormData) {
   const response = await fetch("/api/generateImageGemini", {
+    method: "POST",
+    body: data,
+  });
+
+  if (!response.ok) {
+    const errorData = await response.json();
+    throw new Error(errorData.error || "Failed to generate image");
+  }
+
+  return response.json();
+}
+
+async function generateImageGrok(data: FormData) {
+  const response = await fetch("/api/generateImageGrok", {
     method: "POST",
     body: data,
   });
@@ -103,9 +118,20 @@ export default function PromptPage({
     mutationFn: generateImageGemini,
   });
 
-  const isPending = isOpenAIPending || isGeminiPending;
-  const error = openAIError?.message || geminiError?.message || null;
-  const data = openAIData || geminiData;
+  const {
+    mutate: generateGrokMutation,
+    isPending: isGrokPending,
+    error: grokError,
+    data: grokData,
+    reset: resetGrok,
+  } = useMutation({
+    mutationFn: generateImageGrok,
+  });
+
+  const isPending = isOpenAIPending || isGeminiPending || isGrokPending;
+  const error =
+    openAIError?.message || geminiError?.message || grokError?.message || null;
+  const data = openAIData || geminiData || grokData;
 
   const getImageResult = useCallback(() => {
     if (!data?.data?.[0]) return null;
@@ -125,9 +151,10 @@ export default function PromptPage({
         setSelectedApiKey(apiKey);
         resetOpenAI();
         resetGemini();
+        resetGrok();
       }
     },
-    [selectedProvider, selectedApiKey, resetOpenAI, resetGemini]
+    [selectedProvider, selectedApiKey, resetOpenAI, resetGemini, resetGrok]
   );
 
   const handleImagesChange = useCallback((files: File[]) => {
@@ -173,6 +200,18 @@ export default function PromptPage({
         });
 
         generateOpenAIMutation(formData);
+      } else if (selectedProvider && selectedProvider in GROK_IMAGE_MODELS) {
+        // Grok models (image editing)
+        formData.append("apiKey", selectedApiKey);
+        formData.append("model", selectedProvider);
+        const aspectRatioMap: Record<string, string> = {
+          "1024x1024": "1:1",
+          "1536x1024": "16:9",
+          "1024x1536": "9:16",
+        };
+        formData.append("aspectRatio", aspectRatioMap[size] || "1:1");
+        formData.append("image", images[0]!);
+        generateGrokMutation(formData);
       } else if (selectedProvider) {
         // Nano Banana models (image editing)
         formData.append("apiKey", selectedApiKey);
@@ -198,21 +237,25 @@ export default function PromptPage({
       images,
       generateOpenAIMutation,
       generateGeminiMutation,
+      generateGrokMutation,
     ]
   );
 
   const handleReset = useCallback(() => {
     resetOpenAI();
     resetGemini();
+    resetGrok();
     setImages([]);
-  }, [resetOpenAI, resetGemini]);
+  }, [resetOpenAI, resetGemini, resetGrok]);
 
-  const hasAnyApiKey = hasApiKey("openai") || hasApiKey("gemini");
+  const hasAnyApiKey =
+    hasApiKey("openai") || hasApiKey("gemini") || hasApiKey("grok");
 
   useEffect(() => {
     if (isLoaded && !selectedProvider) {
       const openaiKey = localStorage.getItem("openai_api_key");
       const geminiKey = localStorage.getItem("gemini_api_key");
+      const grokKey = localStorage.getItem("grok_api_key");
 
       if (openaiKey) {
         // Default to cost-effective gpt-image-1-mini model
@@ -221,6 +264,9 @@ export default function PromptPage({
       } else if (geminiKey) {
         setSelectedProvider("gemini-nano-banana");
         setSelectedApiKey(geminiKey);
+      } else if (grokKey) {
+        setSelectedProvider("grok-imagine");
+        setSelectedApiKey(grokKey);
       }
     }
   }, [isLoaded, selectedProvider]);

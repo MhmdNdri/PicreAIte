@@ -3,8 +3,9 @@
 import { useState } from "react";
 import { useApiKeys } from "@/hooks/useApiKeys";
 import { validateGeminiApiKey } from "@/services/geminiImageService";
+import { validateGrokApiKey } from "@/services/grokImageService";
 
-type ProviderType = "openai" | "gemini";
+type ProviderType = "openai" | "gemini" | "grok";
 
 interface ProviderConfig {
   name: string;
@@ -43,6 +44,15 @@ const PROVIDERS: Record<ProviderType, ProviderConfig> = {
     placeholder: "AI...",
     validator: (key: string) => key.length > 10,
     asyncValidator: validateGeminiApiKey,
+  },
+  grok: {
+    name: "xAI Grok",
+    description:
+      "Add your xAI API key to use Grok Imagine for image editing.",
+    placeholder: "xai-... or gsk_...",
+    validator: (key: string) =>
+      key.startsWith("xai-") || key.startsWith("gsk_"),
+    asyncValidator: validateGrokApiKey,
   },
 };
 

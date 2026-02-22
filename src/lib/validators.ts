@@ -45,3 +45,12 @@ export const generateGeminiSchema = z.object({
   aspectRatio: z.enum(["1:1", "3:4", "4:3", "9:16", "16:9"]).optional(),
 });
 
+export const GROK_MODEL_KEYS = ["grok-imagine"] as const;
+
+export const generateGrokSchema = z.object({
+  apiKey: z.string().min(1),
+  prompt: z.string().min(1),
+  model: z.enum(GROK_MODEL_KEYS),
+  aspectRatio: z.enum(["1:1", "16:9", "9:16", "4:3", "3:4"]).optional(),
+});
+

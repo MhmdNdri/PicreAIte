@@ -17,11 +17,16 @@ import {
   GEMINI_IMAGE_MODELS,
   type GeminiImageModelKey,
 } from "@/lib/gemini-models";
+import {
+  GROK_IMAGE_MODELS,
+  type GrokImageModelKey,
+} from "@/lib/grok-models";
 
 export type ProviderType =
   | "openai"
   | "openai-mini"
-  | GeminiImageModelKey;
+  | GeminiImageModelKey
+  | GrokImageModelKey;
 
 interface ProviderSelectProps {
   onProviderSelect: (provider: ProviderType, apiKey: string) => void;
@@ -56,15 +61,28 @@ function getProviderDisplay(provider: ProviderType) {
   if (provider === "openai" || provider === "openai-mini") {
     return OPENAI_PROVIDERS[provider];
   }
-  const config = GEMINI_IMAGE_MODELS[provider as GeminiImageModelKey];
+  if (provider in GEMINI_IMAGE_MODELS) {
+    const config = GEMINI_IMAGE_MODELS[provider as GeminiImageModelKey];
+    return {
+      name: config.id,
+      displayName: config.name,
+      icon: <Sparkles className="h-4 w-4" />,
+      color: "text-blue-600 dark:text-blue-400",
+      badge: "Image edit",
+      badgeColor:
+        "bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-300",
+      description: config.description,
+    };
+  }
+  const config = GROK_IMAGE_MODELS[provider as GrokImageModelKey];
   return {
     name: config.id,
     displayName: config.name,
     icon: <Sparkles className="h-4 w-4" />,
-    color: "text-blue-600 dark:text-blue-400",
-    badge: "Image edit",
+    color: "text-purple-600 dark:text-purple-400",
+    badge: "xAI",
     badgeColor:
-      "bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-300",
+      "bg-purple-100 text-purple-700 dark:bg-purple-900/30 dark:text-purple-300",
     description: config.description,
   };
 }
@@ -91,17 +109,26 @@ export function ProviderSelect({
           (key) => providers.push(key)
         );
       }
+      if (hasApiKey("grok")) {
+        (Object.keys(GROK_IMAGE_MODELS) as GrokImageModelKey[]).forEach((key) =>
+          providers.push(key)
+        );
+      }
       setAvailableProviders(providers);
     }
   }, [isLoaded, hasApiKey]);
 
   const handleProviderChange = (provider: string) => {
     const typedProvider = provider as ProviderType;
-    const keyType =
-      typedProvider === "openai" || typedProvider === "openai-mini"
-        ? "openai"
-        : "gemini";
-    const apiKey = getApiKey(keyType as "openai" | "gemini");
+    let keyType: "openai" | "gemini" | "grok";
+    if (typedProvider === "openai" || typedProvider === "openai-mini") {
+      keyType = "openai";
+    } else if (typedProvider in GROK_IMAGE_MODELS) {
+      keyType = "grok";
+    } else {
+      keyType = "gemini";
+    }
+    const apiKey = getApiKey(keyType);
     if (apiKey) {
       onProviderSelect(typedProvider, apiKey);
     }
