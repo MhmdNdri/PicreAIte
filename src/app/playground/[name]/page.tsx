@@ -18,7 +18,11 @@ import { use } from "react";
 import { MobileLayout } from "../components/MobileLayout";
 import { DesktopLayout } from "../components/DesktopLayout";
 import { useApiKeys } from "@/hooks/useApiKeys";
-import { ProviderSelect, type ProviderType } from "../components/ProviderSelect";
+import {
+  ProviderSelect,
+  type ProviderType,
+  type ApiKeySource,
+} from "../components/ProviderSelect";
 import { GROK_IMAGE_MODELS } from "@/lib/grok-models";
 
 async function fetchPrompt(name: string) {
@@ -88,6 +92,9 @@ export default function PromptPage({
     ProviderType | undefined
   >(undefined);
   const [selectedApiKey, setSelectedApiKey] = useState<string>("");
+  const [selectedKeySource, setSelectedKeySource] = useState<
+    ApiKeySource | null
+  >(null);
 
   const resolvedParams = use(params);
   const promptName = resolvedParams.name;
@@ -130,7 +137,10 @@ export default function PromptPage({
 
   const isPending = isOpenAIPending || isGeminiPending || isGrokPending;
   const error =
-    openAIError?.message || geminiError?.message || grokError?.message || null;
+    openAIError?.message ||
+    geminiError?.message ||
+    grokError?.message ||
+    null;
   const data = openAIData || geminiData || grokData;
 
   const getImageResult = useCallback(() => {
@@ -145,16 +155,28 @@ export default function PromptPage({
   }, [data]);
 
   const handleProviderSelect = useCallback(
-    (provider: ProviderType, apiKey: string) => {
-      if (provider !== selectedProvider || apiKey !== selectedApiKey) {
+    (provider: ProviderType, apiKey: string, keySource: ApiKeySource) => {
+      if (
+        provider !== selectedProvider ||
+        apiKey !== selectedApiKey ||
+        keySource !== selectedKeySource
+      ) {
         setSelectedProvider(provider);
         setSelectedApiKey(apiKey);
+        setSelectedKeySource(keySource);
         resetOpenAI();
         resetGemini();
         resetGrok();
       }
     },
-    [selectedProvider, selectedApiKey, resetOpenAI, resetGemini, resetGrok]
+    [
+      selectedProvider,
+      selectedApiKey,
+      selectedKeySource,
+      resetOpenAI,
+      resetGemini,
+      resetGrok,
+    ]
   );
 
   const handleImagesChange = useCallback((files: File[]) => {
@@ -169,7 +191,7 @@ export default function PromptPage({
     async (e: React.FormEvent) => {
       e.preventDefault();
 
-      if (!selectedProvider || !selectedApiKey) {
+      if (!selectedProvider || !selectedApiKey || !selectedKeySource) {
         alert("Please select a provider first");
         return;
       }
@@ -189,7 +211,7 @@ export default function PromptPage({
           "model",
           selectedProvider === "openai-mini"
             ? "gpt-image-1-mini"
-            : "gpt-image-1.5"
+            : "gpt-image-2"
         );
         formData.append("quality", quality);
         formData.append("size", size);
@@ -198,6 +220,9 @@ export default function PromptPage({
         images.forEach((image) => {
           formData.append("image[]", image);
         });
+        if (selectedKeySource === "openrouter") {
+          formData.append("sourceProvider", "openai");
+        }
 
         generateOpenAIMutation(formData);
       } else if (selectedProvider && selectedProvider in GROK_IMAGE_MODELS) {
@@ -211,6 +236,9 @@ export default function PromptPage({
         };
         formData.append("aspectRatio", aspectRatioMap[size] || "1:1");
         formData.append("image", images[0]!);
+        if (selectedKeySource === "openrouter") {
+          formData.append("sourceProvider", "grok");
+        }
         generateGrokMutation(formData);
       } else if (selectedProvider) {
         // Nano Banana models (image editing)
@@ -225,12 +253,16 @@ export default function PromptPage({
         };
         formData.append("aspectRatio", aspectRatioMap[size] || "1:1");
         formData.append("image", images[0]!);
+        if (selectedKeySource === "openrouter") {
+          formData.append("sourceProvider", "gemini");
+        }
         generateGeminiMutation(formData);
       }
     },
     [
       selectedProvider,
       selectedApiKey,
+      selectedKeySource,
       prompt?.promptDesc,
       quality,
       size,
@@ -249,24 +281,36 @@ export default function PromptPage({
   }, [resetOpenAI, resetGemini, resetGrok]);
 
   const hasAnyApiKey =
-    hasApiKey("openai") || hasApiKey("gemini") || hasApiKey("grok");
+    hasApiKey("openai") ||
+    hasApiKey("gemini") ||
+    hasApiKey("grok") ||
+    hasApiKey("openrouter");
 
   useEffect(() => {
     if (isLoaded && !selectedProvider) {
       const openaiKey = localStorage.getItem("openai_api_key");
       const geminiKey = localStorage.getItem("gemini_api_key");
       const grokKey = localStorage.getItem("grok_api_key");
+      const openrouterKey = localStorage.getItem("openrouter_api_key");
 
       if (openaiKey) {
         // Default to cost-effective gpt-image-1-mini model
         setSelectedProvider("openai-mini");
         setSelectedApiKey(openaiKey);
+        setSelectedKeySource("openai");
       } else if (geminiKey) {
         setSelectedProvider("gemini-nano-banana");
         setSelectedApiKey(geminiKey);
+        setSelectedKeySource("gemini");
       } else if (grokKey) {
         setSelectedProvider("grok-imagine");
         setSelectedApiKey(grokKey);
+        setSelectedKeySource("grok");
+      } else if (openrouterKey) {
+        // OpenRouter key enables all providers; default to the most compatible path.
+        setSelectedProvider("openai");
+        setSelectedApiKey(openrouterKey);
+        setSelectedKeySource("openrouter");
       }
     }
   }, [isLoaded, selectedProvider]);

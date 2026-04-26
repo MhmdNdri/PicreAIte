@@ -28,15 +28,21 @@ export type ProviderType =
   | GeminiImageModelKey
   | GrokImageModelKey;
 
+export type ApiKeySource = "openai" | "gemini" | "grok" | "openrouter";
+
 interface ProviderSelectProps {
-  onProviderSelect: (provider: ProviderType, apiKey: string) => void;
+  onProviderSelect: (
+    provider: ProviderType,
+    apiKey: string,
+    keySource: ApiKeySource
+  ) => void;
   selectedProvider?: ProviderType;
   disabled?: boolean;
 }
 
 const OPENAI_PROVIDERS = {
   openai: {
-    name: "gpt-image-1.5",
+    name: "gpt-image-2",
     displayName: "OpenAI Standard",
     icon: <Zap className="h-4 w-4" />,
     color: "text-emerald-600 dark:text-emerald-400",
@@ -99,38 +105,58 @@ export function ProviderSelect({
 
   useEffect(() => {
     if (isLoaded) {
-      const providers: ProviderType[] = [];
-      if (hasApiKey("openai")) {
-        providers.push("openai");
-        providers.push("openai-mini");
+      const providers = new Set<ProviderType>();
+      const hasOpenRouter = hasApiKey("openrouter");
+
+      if (hasApiKey("openai") || hasOpenRouter) {
+        providers.add("openai");
+        providers.add("openai-mini");
       }
-      if (hasApiKey("gemini")) {
+      if (hasApiKey("gemini") || hasOpenRouter) {
         (Object.keys(GEMINI_IMAGE_MODELS) as GeminiImageModelKey[]).forEach(
-          (key) => providers.push(key)
+          (key) => providers.add(key)
         );
       }
-      if (hasApiKey("grok")) {
+      if (hasApiKey("grok") || hasOpenRouter) {
         (Object.keys(GROK_IMAGE_MODELS) as GrokImageModelKey[]).forEach((key) =>
-          providers.push(key)
+          providers.add(key)
         );
       }
-      setAvailableProviders(providers);
+
+      setAvailableProviders(Array.from(providers));
     }
   }, [isLoaded, hasApiKey]);
 
+  const resolveKeySource = (provider: ProviderType): ApiKeySource | null => {
+    if (provider === "openai" || provider === "openai-mini") {
+      if (hasApiKey("openai")) return "openai";
+      if (hasApiKey("openrouter")) return "openrouter";
+      return null;
+    }
+
+    if (provider in GROK_IMAGE_MODELS) {
+      if (hasApiKey("grok")) return "grok";
+      if (hasApiKey("openrouter")) return "openrouter";
+      return null;
+    }
+
+    if (provider in GEMINI_IMAGE_MODELS) {
+      if (hasApiKey("gemini")) return "gemini";
+      if (hasApiKey("openrouter")) return "openrouter";
+      return null;
+    }
+
+    return null;
+  };
+
   const handleProviderChange = (provider: string) => {
     const typedProvider = provider as ProviderType;
-    let keyType: "openai" | "gemini" | "grok";
-    if (typedProvider === "openai" || typedProvider === "openai-mini") {
-      keyType = "openai";
-    } else if (typedProvider in GROK_IMAGE_MODELS) {
-      keyType = "grok";
-    } else {
-      keyType = "gemini";
-    }
-    const apiKey = getApiKey(keyType);
+    const keySource = resolveKeySource(typedProvider);
+    if (!keySource) return;
+
+    const apiKey = getApiKey(keySource);
     if (apiKey) {
-      onProviderSelect(typedProvider, apiKey);
+      onProviderSelect(typedProvider, apiKey, keySource);
     }
   };
 
@@ -231,6 +257,11 @@ export function ProviderSelect({
       {selectedProviderData && (
         <p className="text-xs text-gray-500 dark:text-gray-400">
           {selectedProviderData.description}
+        </p>
+      )}
+      {selectedProvider && resolveKeySource(selectedProvider) === "openrouter" && (
+        <p className="text-xs text-cyan-600 dark:text-cyan-400">
+          Using OpenRouter key for this provider selection.
         </p>
       )}
     </div>

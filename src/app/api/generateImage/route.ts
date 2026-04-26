@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { getAuth } from "@clerk/nextjs/server";
 import { badRequest, handleRouteError, unauthorized } from "@/lib/api-errors";
 import { generateOpenAiSchema } from "@/lib/validators";
+import { generateImageWithOpenRouter } from "@/services/openrouterImageService";
 
 export const maxDuration = 300; // Increase to 5 minutes (300 seconds)
 export const runtime = "nodejs";
@@ -32,9 +33,7 @@ export async function POST(request: NextRequest) {
 
     const apiKey = parsed.data.apiKey;
     const prompt = parsed.data.prompt;
-    // Keep server fallback as gpt-image-1 to avoid implicitly changing defaults;
-    // the client can explicitly request newer models (e.g. gpt-image-1.5).
-    const model = parsed.data.model || "gpt-image-1";
+    const model = parsed.data.model || "gpt-image-2";
     const n = parsed.data.n ?? 1;
     const quality = parsed.data.quality || "auto";
     const size = parsed.data.size || "1024x1024";
@@ -47,12 +46,42 @@ export async function POST(request: NextRequest) {
       throw badRequest("At least one image is required");
     }
 
+    // Unified key behavior: if key is OpenRouter, route through OpenRouter internally.
+    if (apiKey.startsWith("sk-or-")) {
+      const firstImage = imageFiles[0] as File | undefined;
+      if (!firstImage) {
+        throw badRequest("At least one image is required");
+      }
+
+      const openRouterModel =
+        model === "gpt-image-1-mini"
+          ? "openrouter-gpt-image-1-mini"
+          : model === "gpt-image-2" || model === "gpt-image-1.5"
+            ? "openrouter-gpt-image-2"
+            : "openrouter-gpt-image-1";
+
+      const openRouterResult = await generateImageWithOpenRouter(apiKey, prompt, {
+        model: openRouterModel,
+        size: size as "1024x1024" | "1536x1024" | "1024x1536",
+        quality:
+          quality === "low" || quality === "medium" || quality === "high"
+            ? quality
+            : "high",
+        inputImage: firstImage,
+        appUrl: request.nextUrl.origin,
+      });
+
+      return NextResponse.json({
+        data: [{ b64_json: openRouterResult.imageBytes }],
+      });
+    }
+
     const openaiFormData = new FormData();
     openaiFormData.append("prompt", prompt);
     openaiFormData.append("model", model);
     openaiFormData.append("n", n.toString());
 
-    // gpt-image-1 supports quality parameter: auto, low, medium, high
+    // GPT Image models (gpt-image-2, gpt-image-1, etc.) support quality: auto, low, medium, high
     openaiFormData.append("quality", quality);
     openaiFormData.append("size", size);
 
@@ -124,6 +153,17 @@ export async function POST(request: NextRequest) {
       throw fetchError; // Re-throw other errors to be caught by outer try-catch
     }
   } catch (error) {
+    const msg = error instanceof Error ? error.message : String(error);
+    if (msg.includes("Invalid OpenRouter API key")) {
+      return NextResponse.json({ error: msg }, { status: 401 });
+    }
+    if (msg.includes("OpenRouter quota exceeded")) {
+      return NextResponse.json({ error: msg }, { status: 429 });
+    }
+    if (msg.startsWith("OpenRouter image generation failed")) {
+      return NextResponse.json({ error: msg }, { status: 400 });
+    }
+
     return handleRouteError({
       error,
       fallbackMessage:

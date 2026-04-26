@@ -4,6 +4,7 @@ import {
   generateImageWithGrok,
   type GrokImageOptions,
 } from "@/services/grokImageService";
+import { generateImageWithOpenRouter } from "@/services/openrouterImageService";
 import { ApiError, badRequest, unauthorized } from "@/lib/api-errors";
 import { generateGrokSchema } from "@/lib/validators";
 
@@ -36,6 +37,32 @@ export async function POST(request: NextRequest) {
 
     if (!imageFile) {
       throw badRequest("Image is required for Grok image editing");
+    }
+
+    if (parsed.data.apiKey.startsWith("sk-or-")) {
+      const sizeFromAspectRatio =
+        parsed.data.aspectRatio === "9:16" || parsed.data.aspectRatio === "3:4"
+          ? "1024x1536"
+          : parsed.data.aspectRatio === "16:9" ||
+            parsed.data.aspectRatio === "4:3"
+          ? "1536x1024"
+          : "1024x1024";
+
+      const result = await generateImageWithOpenRouter(
+        parsed.data.apiKey,
+        parsed.data.prompt,
+        {
+          model: "openrouter-gpt-image-1",
+          size: sizeFromAspectRatio,
+          quality: "high",
+          inputImage: imageFile,
+          appUrl: request.nextUrl.origin,
+        }
+      );
+
+      return NextResponse.json({
+        data: [{ b64_json: result.imageBytes }],
+      });
     }
 
     const imageBuffer = Buffer.from(await imageFile.arrayBuffer());
@@ -90,6 +117,15 @@ export async function POST(request: NextRequest) {
     }
     if (msg.includes("quota exceeded") || msg.includes("Quota exceeded")) {
       return NextResponse.json({ error: msg }, { status: 429 });
+    }
+    if (msg.includes("Invalid OpenRouter API key")) {
+      return NextResponse.json({ error: msg }, { status: 401 });
+    }
+    if (msg.includes("OpenRouter quota exceeded")) {
+      return NextResponse.json({ error: msg }, { status: 429 });
+    }
+    if (msg.startsWith("OpenRouter image generation failed")) {
+      return NextResponse.json({ error: msg }, { status: 400 });
     }
     if (msg.startsWith("Grok image generation failed:")) {
       return NextResponse.json({ error: msg }, { status: 400 });

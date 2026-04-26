@@ -6,6 +6,7 @@ export interface ApiKeys {
   openai?: string;
   gemini?: string;
   grok?: string;
+  openrouter?: string;
 }
 
 export function useApiKeys() {
@@ -19,10 +20,12 @@ export function useApiKeys() {
       const openaiKey = localStorage.getItem("openai_api_key");
       const geminiKey = localStorage.getItem("gemini_api_key");
       const grokKey = localStorage.getItem("grok_api_key");
+      const openrouterKey = localStorage.getItem("openrouter_api_key");
 
       if (openaiKey) savedKeys.openai = openaiKey;
       if (geminiKey) savedKeys.gemini = geminiKey;
       if (grokKey) savedKeys.grok = grokKey;
+      if (openrouterKey) savedKeys.openrouter = openrouterKey;
 
       setApiKeys(savedKeys);
       setIsLoaded(true);
@@ -59,6 +62,7 @@ export function useApiKeys() {
       localStorage.removeItem("openai_api_key");
       localStorage.removeItem("gemini_api_key");
       localStorage.removeItem("grok_api_key");
+      localStorage.removeItem("openrouter_api_key");
       setApiKeys({});
     }
   }, []);

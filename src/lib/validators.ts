@@ -54,3 +54,17 @@ export const generateGrokSchema = z.object({
   aspectRatio: z.enum(["1:1", "16:9", "9:16", "4:3", "3:4"]).optional(),
 });
 
+export const OPENROUTER_MODEL_KEYS = [
+  "openrouter-gpt-image-1",
+  "openrouter-gpt-image-1-mini",
+] as const;
+
+export const generateOpenRouterSchema = z.object({
+  apiKey: z.string().min(1),
+  prompt: z.string().min(1),
+  model: z.enum(OPENROUTER_MODEL_KEYS),
+  size: z.enum(["1024x1024", "1536x1024", "1024x1536"]).optional(),
+  quality: z.enum(["low", "medium", "high"]).optional(),
+  sourceProvider: z.enum(["openai", "gemini", "grok", "openrouter"]).optional(),
+});
+

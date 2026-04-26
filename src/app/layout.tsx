@@ -99,8 +99,6 @@ export const metadata: Metadata = {
   },
 };
 
-export const viewTransition = true;
-
 export default function RootLayout({
   children,
 }: {

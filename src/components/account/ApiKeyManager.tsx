@@ -5,7 +5,7 @@ import { useApiKeys } from "@/hooks/useApiKeys";
 import { validateGeminiApiKey } from "@/services/geminiImageService";
 import { validateGrokApiKey } from "@/services/grokImageService";
 
-type ProviderType = "openai" | "gemini" | "grok";
+type ProviderType = "openai" | "gemini" | "grok" | "openrouter";
 
 interface ProviderConfig {
   name: string;
@@ -28,11 +28,24 @@ async function validateOpenAIApiKey(apiKey: string): Promise<boolean> {
   }
 }
 
+async function validateOpenRouterApiKey(apiKey: string): Promise<boolean> {
+  try {
+    const response = await fetch("/api/validate-openrouter-key", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ apiKey }),
+    });
+    return response.ok;
+  } catch {
+    return false;
+  }
+}
+
 const PROVIDERS: Record<ProviderType, ProviderConfig> = {
   openai: {
     name: "OpenAI",
     description:
-      "Add your OpenAI API key to use gpt-image-1.5 for image editing.",
+      "Add your OpenAI API key to use gpt-image-2 for image editing.",
     placeholder: "sk-...",
     validator: (key: string) => key.startsWith("sk-"),
     asyncValidator: validateOpenAIApiKey,
@@ -53,6 +66,14 @@ const PROVIDERS: Record<ProviderType, ProviderConfig> = {
     validator: (key: string) =>
       key.startsWith("xai-") || key.startsWith("gsk_"),
     asyncValidator: validateGrokApiKey,
+  },
+  openrouter: {
+    name: "OpenRouter",
+    description:
+      "Add one OpenRouter API key to use OpenRouter models directly and as fallback when provider-specific keys are missing.",
+    placeholder: "sk-or-v1-...",
+    validator: (key: string) => key.startsWith("sk-or-"),
+    asyncValidator: validateOpenRouterApiKey,
   },
 };
 
