@@ -1,109 +1,72 @@
-# Picreaite
+# PicreAIte
 
-A Next.js application with Drizzle ORM and PostgreSQL.
+A style-first photo editor built with Next.js, React, PostgreSQL/Drizzle, Clerk,
+and UploadThing. Choose a preset, upload a photo, select an image model with your
+own API key, and download the result or save it to your 24-hour gallery.
 
-## Getting Started
+## Current model lineup
 
-### Prerequisites
+Reviewed on **17 September 2026**:
 
-- Node.js 18 or higher
-- Bun 1.3 or higher
-- PostgreSQL database
-- Uploadthing account for image storage
+- OpenAI: GPT Image 2.5 Sunburst (precision), Flare (speed), and GPT Image 1 Mini (budget).
+- Google: Nano Banana 2 (balanced), Nano Banana 2 Lite (budget/speed), and Nano Banana Pro (complex edits).
+- xAI: Grok Imagine Image 2.0.
+- OpenRouter: access the same selected models when a direct provider key is absent.
 
-### Installation
+The picker shows model-specific benefits, capabilities, published direct pricing,
+and pricing links. Results show OpenRouter/xAI reported charges or model-specific
+estimates from returned usage. Incomplete usage produces a clearly labeled partial
+estimate or unavailable state. Expand the result's breakdown to see quantities and
+rates. See [cost accounting](docs/model-pricing.md) for formulas and limitations.
 
-1. Clone the repository
-2. Install dependencies:
+Model IDs, routing, controls, and price notes live in
+[src/lib/image-models.ts](src/lib/image-models.ts).
+See [the project review and upgrade plan](docs/project-review.md) for the
+architecture, findings, official model sources, and next steps.
 
-   ```bash
-   bun install
-   ```
+## Local setup
 
-3. Set up environment variables:
+1. Install Node.js 20+ and Bun 1.3.4+.
+2. Run `bun install --frozen-lockfile`.
+3. Copy `.env.example` to `.env.local` and fill in PostgreSQL, Clerk, and UploadThing credentials.
+   The database adapter currently requires SSL.
+4. For a **new development database**, run `bun run db:push` to apply the schema.
+   Review schema changes before applying them to an existing database. No migration
+   history or style seeds are currently checked in.
+5. Configure the Clerk webhook at `/api/webhooks/clerk` for user created, updated,
+   and deleted events. Gallery saves require the synchronized database user record.
+6. Run `bun run dev`, sign in, and add your image-provider key under `/api-key`.
+7. Populate development styles through `/admin` (requires `ADMIN_PASSWORD`).
+   Existing production presets must come from your database.
 
-   - Copy `.env.example` to `.env`
-   - Update the database configuration in `.env`
-   - Add your Uploadthing credentials (see Environment Variables section)
+The optional PostHog variables configure analytics. Image editing uses browser-saved
+user keys; setting a server `OPENAI_API_KEY` alone does not configure the app.
 
-4. Generate database migrations:
+**Before public deployment:** fix the existing server-side authorization gap on
+prompt mutations described in the review. The admin page's client-side guard
+does not authorize `/api/prompts` writes.
 
-   ```bash
-   bun run db:generate
-   ```
+## Development commands
 
-5. Push migrations to the database:
+- `bun run dev` — development server.
+- `bun run build` / `bun run start` — production build/server; requires valid app environment.
+- `bun run typecheck` — TypeScript checks.
+- `bun run test` — offline provider, pricing, upload and response regressions; no paid API calls.
+- `bun run lint` — noninteractive Next.js/TypeScript ESLint checks.
+- `bun run test:ui` — editor browser smoke checks with fake external services.
+  Install Chromium once with `bunx playwright install chromium`, or use an installed
+  browser via `BROWSER_CHANNEL=msedge` (PowerShell: `$env:BROWSER_CHANNEL='msedge'`).
+  Screenshots and reports are written to ignored `coverage/ui-smoke`.
+- `bun run db:generate`, `bun run db:migrate`, `bun run db:push`, `bun run db:studio` — database tooling.
 
-   ```bash
-   bun run db:push
-   ```
+The editing endpoints accept a multipart form containing `model` (catalog key or
+current direct model ID), `apiKey`, `keySource`, `prompt`, one `image`, `size`, and
+the selected model's optional `quality`/`resolution`. Unsupported options are
+rejected. Results include base64 bytes, MIME type, executed model, provider, and
+cost details, and the submitted settings. Successful large JSON responses are
+streamed in chunks; clients still consume them with `response.json()`.
 
-6. Start the development server:
-   ```bash
-   bun run dev
-   ```
-
-## Database Structure
-
-The database is structured as follows:
-
-- `src/drizzle/schema.ts`: Database schema definitions
-- `src/drizzle/schemaHelper.ts`: Helper functions and type definitions
-- `src/drizzle/db.ts`: Database connection configuration
-- `src/drizzle/migrations/`: Generated migration files
-
-## Environment Variables
-
-The application uses the following environment variables:
-
-### Database
-
-- `DATABASE_HOST`: PostgreSQL host
-- `DATABASE_PORT`: PostgreSQL port
-- `DATABASE_USER`: PostgreSQL user
-- `DATABASE_PASSWORD`: PostgreSQL password
-- `DATABASE_NAME`: PostgreSQL database name
-- `DATABASE_SSL`: Whether to use SSL for database connection
-
-### Authentication (Clerk)
-
-- `CLERK_WEBHOOK_SECRET`: Clerk webhook secret
-- `NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY`: Clerk publishable key
-- `CLERK_SECRET_KEY`: Clerk secret key
-- `NEXT_PUBLIC_CLERK_SIGN_IN_URL`: Clerk sign in URL
-- `NEXT_PUBLIC_CLERK_SIGN_UP_URL`: Clerk sign up URL
-- `NEXT_PUBLIC_CLERK_SIGN_IN_FALLBACK_REDIRECT_URL`: Fallback URL after sign in
-- `NEXT_PUBLIC_CLERK_SIGN_UP_FALLBACK_REDIRECT_URL`: Fallback URL after sign up
-
-### Image Storage (Uploadthing)
-
-- `UPLOADTHING_SECRET`: Your uploadthing secret key
-- `UPLOADTHING_TOKEN`: Your uploadthing token
-
-## Available Scripts
-
-- `bun run dev`: Start the development server
-- `bun run build`: Build the application
-- `bun run start`: Start the production server
-- `bun run lint`: Run ESLint
-- `bun run format`: Format code with Prettier
-- `bun run db:generate`: Generate database migrations
-- `bun run db:push`: Push migrations to the database
-- `bun run db:studio`: Open Drizzle Studio
-
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
-
-## Learn More
-
-To learn more about Next.js, take a look at the following resources:
-
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
-
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
-
-## Deploy on Vercel
-
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
-
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+Provider calls are bounded to 280 seconds with a 300-second route budget. Check
+that your deployment plan supports that duration. The app keeps a one-photo,
+4 MB input limit; larger model capabilities are not all exposed by this UI.
+Gallery saves have an 8 MB limit; Download preserves larger results at full quality.
