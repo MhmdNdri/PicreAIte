@@ -1,104 +1,53 @@
-import { GROK_IMAGE_MODELS, type GrokImageModelKey } from "@/lib/grok-models";
+import { IMAGE_MODELS } from "@/lib/image-models";
+import { calculateImageCost } from "@/lib/image-pricing";
+import type { ImageEditRequest } from "@/lib/image-request";
+import { generatedImage, imageApiJson } from "./imageApi";
 
 const XAI_API_BASE = "https://api.x.ai/v1";
 
-export interface GrokImageOptions {
-  model: GrokImageModelKey;
-  aspectRatio?: "1:1" | "16:9" | "9:16" | "4:3" | "3:4";
-  inputImage: {
-    imageBytes: string; // base64
-    mimeType: string;
-  };
-}
-
-export interface GrokImageResult {
-  imageBytes: string; // base64
-  mimeType: string;
-}
-
-export async function generateImageWithGrok(
-  apiKey: string,
-  prompt: string,
-  options: GrokImageOptions
-): Promise<GrokImageResult> {
-  const modelId = GROK_IMAGE_MODELS[options.model].id;
-  const { imageBytes, mimeType } = options.inputImage;
-  const dataUri = `data:${mimeType};base64,${imageBytes}`;
-
-  const body: Record<string, unknown> = {
-    model: modelId,
-    prompt,
-    image: {
-      url: dataUri,
-      type: "image_url",
+export async function generateImageWithGrok(request: ImageEditRequest) {
+  const data = Buffer.from(await request.image.arrayBuffer()).toString(
+    "base64",
+  );
+  const json = await imageApiJson(
+    `${XAI_API_BASE}/images/edits`,
+    {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${request.apiKey}`,
+      },
+      body: JSON.stringify({
+        model: IMAGE_MODELS[request.model].id,
+        prompt: request.prompt,
+        image: {
+          url: `data:${request.image.type};base64,${data}`,
+          type: "image_url",
+        },
+        aspect_ratio: request.aspectRatio,
+        quality: request.quality,
+        resolution: request.resolution.toLowerCase(),
+        response_format: "b64_json",
+      }),
     },
+    "Grok",
+  );
+  const cost = calculateImageCost(request, json.usage);
+  return {
+    ...generatedImage(
+      json.data?.[0]?.b64_json,
+      "image/jpeg",
+      cost.status === "reported" ? cost.amountUsd : undefined,
+    ),
+    cost,
   };
-
-  if (options.aspectRatio) {
-    body.aspect_ratio = options.aspectRatio;
-  }
-
-  const response = await fetch(`${XAI_API_BASE}/images/edits`, {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-      Authorization: `Bearer ${apiKey}`,
-    },
-    body: JSON.stringify(body),
-  });
-
-  if (!response.ok) {
-    const errorText = await response.text();
-    let errorMessage: string;
-    try {
-      const errorJson = JSON.parse(errorText);
-      errorMessage = errorJson.error?.message || errorJson.error || errorText;
-    } catch {
-      errorMessage = errorText;
-    }
-
-    if (response.status === 401) {
-      throw new Error("Invalid Grok API key");
-    }
-    if (response.status === 429) {
-      throw new Error("Grok quota exceeded. Please check your xAI account.");
-    }
-
-    throw new Error(`Grok image generation failed: ${errorMessage}`);
-  }
-
-  const json = await response.json();
-
-  // xAI returns URLs by default — download and convert to base64
-  const imageUrl: string | undefined = json?.data?.[0]?.url;
-  const b64Direct: string | undefined = json?.data?.[0]?.b64_json;
-
-  if (b64Direct) {
-    return { imageBytes: b64Direct, mimeType: "image/jpeg" };
-  }
-
-  if (!imageUrl) {
-    throw new Error("Grok image generation failed: no image data in response");
-  }
-
-  const imgResponse = await fetch(imageUrl);
-  if (!imgResponse.ok) {
-    throw new Error("Grok image generation failed: could not download result image");
-  }
-
-  const arrayBuffer = await imgResponse.arrayBuffer();
-  const base64 = Buffer.from(arrayBuffer).toString("base64");
-  const contentType = imgResponse.headers.get("content-type") || "image/jpeg";
-
-  return { imageBytes: base64, mimeType: contentType };
 }
 
 export async function validateGrokApiKey(apiKey: string): Promise<boolean> {
   try {
     const response = await fetch(`${XAI_API_BASE}/models`, {
-      headers: {
-        Authorization: `Bearer ${apiKey}`,
-      },
+      headers: { Authorization: `Bearer ${apiKey}` },
+      signal: AbortSignal.timeout(15_000),
     });
     return response.ok;
   } catch {

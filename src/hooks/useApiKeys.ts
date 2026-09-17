@@ -9,38 +9,52 @@ export interface ApiKeys {
   openrouter?: string;
 }
 
+const KEY_CHANGE_EVENT = "picreaite:api-keys-changed";
+const PROVIDERS: (keyof ApiKeys)[] = ["openai", "gemini", "grok", "openrouter"];
+
 export function useApiKeys() {
   const [apiKeys, setApiKeys] = useState<ApiKeys>({});
   const [isLoaded, setIsLoaded] = useState(false);
 
   useEffect(() => {
-    if (typeof window !== "undefined") {
+    const loadKeys = () => {
       const savedKeys: ApiKeys = {};
-
-      const openaiKey = localStorage.getItem("openai_api_key");
-      const geminiKey = localStorage.getItem("gemini_api_key");
-      const grokKey = localStorage.getItem("grok_api_key");
-      const openrouterKey = localStorage.getItem("openrouter_api_key");
-
-      if (openaiKey) savedKeys.openai = openaiKey;
-      if (geminiKey) savedKeys.gemini = geminiKey;
-      if (grokKey) savedKeys.grok = grokKey;
-      if (openrouterKey) savedKeys.openrouter = openrouterKey;
-
-      setApiKeys(savedKeys);
-      setIsLoaded(true);
-    }
+      try {
+        for (const provider of PROVIDERS) {
+          const key = localStorage.getItem(`${provider}_api_key`)?.trim();
+          if (key) savedKeys[provider] = key;
+        }
+      } catch {
+        // Storage can be blocked by browser privacy settings. Still finish loading.
+      } finally {
+        setApiKeys(savedKeys);
+        setIsLoaded(true);
+      }
+    };
+    const handleStorage = (event: StorageEvent) => {
+      if (
+        event.key === null ||
+        PROVIDERS.some((provider) => event.key === `${provider}_api_key`)
+      ) {
+        loadKeys();
+      }
+    };
+    loadKeys();
+    window.addEventListener("storage", handleStorage);
+    window.addEventListener(KEY_CHANGE_EVENT, loadKeys);
+    return () => {
+      window.removeEventListener("storage", handleStorage);
+      window.removeEventListener(KEY_CHANGE_EVENT, loadKeys);
+    };
   }, []);
 
   const setApiKey = useCallback((provider: keyof ApiKeys, key: string) => {
     if (typeof window !== "undefined") {
       const storageKey = `${provider}_api_key`;
-      localStorage.setItem(storageKey, key);
-
-      setApiKeys((prev) => ({
-        ...prev,
-        [provider]: key,
-      }));
+      const trimmedKey = key.trim();
+      if (trimmedKey) localStorage.setItem(storageKey, trimmedKey);
+      else localStorage.removeItem(storageKey);
+      window.dispatchEvent(new Event(KEY_CHANGE_EVENT));
     }
   }, []);
 
@@ -49,11 +63,7 @@ export function useApiKeys() {
       const storageKey = `${provider}_api_key`;
       localStorage.removeItem(storageKey);
 
-      setApiKeys((prev) => {
-        const newKeys = { ...prev };
-        delete newKeys[provider];
-        return newKeys;
-      });
+      window.dispatchEvent(new Event(KEY_CHANGE_EVENT));
     }
   }, []);
 
@@ -63,7 +73,7 @@ export function useApiKeys() {
       localStorage.removeItem("gemini_api_key");
       localStorage.removeItem("grok_api_key");
       localStorage.removeItem("openrouter_api_key");
-      setApiKeys({});
+      window.dispatchEvent(new Event(KEY_CHANGE_EVENT));
     }
   }, []);
 
@@ -71,14 +81,14 @@ export function useApiKeys() {
     (provider: keyof ApiKeys): boolean => {
       return Boolean(apiKeys[provider]);
     },
-    [apiKeys]
+    [apiKeys],
   );
 
   const getApiKey = useCallback(
     (provider: keyof ApiKeys): string | undefined => {
       return apiKeys[provider];
     },
-    [apiKeys]
+    [apiKeys],
   );
 
   return {

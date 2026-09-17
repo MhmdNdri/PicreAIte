@@ -1,3 +1,9 @@
+import type {
+  ImageQuality,
+  ImageResolution,
+  ImageModelKey,
+} from "@/lib/image-models";
+import type { ImageGenerationResponse } from "@/lib/image-result";
 import Image from "next/image";
 import { UploadSection } from "./UploadSection";
 import { ResultSection } from "./ResultSection";
@@ -13,8 +19,10 @@ interface MobileLayoutProps {
   images: File[];
   onImagesChange: (files: File[]) => void;
   onRemoveImage: (index: number) => void;
-  quality: "low" | "medium" | "high";
-  onQualityChange: (value: "low" | "medium" | "high") => void;
+  quality: ImageQuality;
+  onQualityChange: (value: ImageQuality) => void;
+  resolution: ImageResolution;
+  onResolutionChange: (value: ImageResolution) => void;
   size: "1024x1024" | "1536x1024" | "1024x1536";
   onSizeChange: (value: "1024x1024" | "1536x1024" | "1024x1536") => void;
   onSubmit: (e: React.FormEvent) => void;
@@ -22,16 +30,8 @@ interface MobileLayoutProps {
   result: string | null;
   error: string | null;
   onReset: () => void;
-  selectedProvider?: string;
-  usage?: {
-    input_tokens: number;
-    input_tokens_details: {
-      image_tokens: number;
-      text_tokens: number;
-    };
-    output_tokens: number;
-    total_tokens: number;
-  };
+  selectedProvider?: ImageModelKey;
+  resultInfo?: ImageGenerationResponse;
 }
 
 export function MobileLayout({
@@ -41,6 +41,8 @@ export function MobileLayout({
   onRemoveImage,
   quality,
   onQualityChange,
+  resolution,
+  onResolutionChange,
   size,
   onSizeChange,
   onSubmit,
@@ -49,7 +51,7 @@ export function MobileLayout({
   error,
   onReset,
   selectedProvider,
-  usage,
+  resultInfo,
 }: MobileLayoutProps) {
   return (
     <div className="md:hidden px-4 py-4 space-y-6">
@@ -105,6 +107,8 @@ export function MobileLayout({
           onRemoveImage={onRemoveImage}
           quality={quality}
           onQualityChange={onQualityChange}
+          resolution={resolution}
+          onResolutionChange={onResolutionChange}
           size={size}
           onSizeChange={onSizeChange}
           onSubmit={onSubmit}
@@ -123,8 +127,7 @@ export function MobileLayout({
         promptName={prompt.name}
         onReset={onReset}
         isMobile={true}
-        usage={usage}
-        selectedProvider={selectedProvider}
+        resultInfo={resultInfo}
       />
     </div>
   );

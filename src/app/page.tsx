@@ -33,7 +33,7 @@ export default async function Home() {
     .select({ imageUrl: PromptTable.imageUrl })
     .from(PromptTable)
     .where(
-      and(isNull(PromptTable.deletedAt), not(isNull(PromptTable.imageUrl)))
+      and(isNull(PromptTable.deletedAt), not(isNull(PromptTable.imageUrl))),
     )
     .orderBy(sql`RANDOM()`)
     .limit(8);
@@ -245,9 +245,10 @@ export default async function Home() {
           </h2>
           <p className="mt-4 max-w-4xl text-lg text-muted-foreground">
             Join thousands of users transforming their images with the power of
-            AI. To get started, you'll need to add your own OpenAI API key in
-            the <b>API Key</b> section. This ensures your generations are
-            private and secure. <br className="hidden sm:block" />
+            AI. To get started, you'll need to add your own provider or
+            OpenRouter API key in the <b>API Key</b> section. This ensures your
+            generations are private and secure.{" "}
+            <br className="hidden sm:block" />
             You can add or update your key anytime from the navigation bar.
           </p>
           <div className="mt-8">

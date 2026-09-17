@@ -1,3 +1,9 @@
+import {
+  getImageModel,
+  type ImageQuality,
+  type ImageResolution,
+  type ImageModelKey,
+} from "@/lib/image-models";
 import { Upload, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { ImagePreview } from "./ImagePreview";
@@ -10,9 +16,9 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { useState, useCallback } from "react";
+import { useState, useCallback, useRef } from "react";
 
-export type QualityOption = "low" | "medium" | "high";
+export type QualityOption = ImageQuality;
 export type SizeOption = "1024x1024" | "1536x1024" | "1024x1536";
 
 interface UploadSectionProps {
@@ -21,19 +27,59 @@ interface UploadSectionProps {
   onRemoveImage: (index: number) => void;
   quality: QualityOption;
   onQualityChange: (value: QualityOption) => void;
+  resolution: ImageResolution;
+  onResolutionChange: (value: ImageResolution) => void;
   size: SizeOption;
   onSizeChange: (value: SizeOption) => void;
   onSubmit: (e: React.FormEvent) => void;
   isLoading: boolean;
   isMobile?: boolean;
-  selectedProvider?: "openai" | "openai-mini" | (string & {});
+  selectedProvider?: ImageModelKey;
 }
 
 const MAX_IMAGES = 1;
 const MAX_FILE_SIZE = 4 * 1024 * 1024; // 4MB in bytes
 
+export function isHeicFile(file: File): boolean {
+  return (
+    /image\/hei[cf](?:-sequence)?$/i.test(file.type) ||
+    /\.hei[cf]$/i.test(file.name)
+  );
+}
+
+export function supportedImageFile(file: File): File | null {
+  if (isHeicFile(file)) return file;
+  if (["image/jpeg", "image/png", "image/webp"].includes(file.type))
+    return file;
+  // Some platforms leave the MIME type empty for otherwise supported files.
+  if (!file.type) {
+    const extension = file.name.split(".").pop()?.toLowerCase();
+    const mime =
+      extension === "jpg" || extension === "jpeg"
+        ? "image/jpeg"
+        : extension === "png"
+          ? "image/png"
+          : extension === "webp"
+            ? "image/webp"
+            : null;
+    if (mime) {
+      return new File([file], file.name, {
+        type: mime,
+        lastModified: file.lastModified,
+      });
+    }
+  }
+  return null;
+}
+
 // Helper function to check file size
 const isFileSizeValid = (file: File): boolean => {
+  if (file.size === 0) {
+    toast.error("This file is empty", {
+      description: "Please choose an image with content.",
+    });
+    return false;
+  }
   if (file.size > MAX_FILE_SIZE) {
     toast.error("File too large", {
       description: "Please select images smaller than 4MB",
@@ -47,8 +93,8 @@ const isFileSizeValid = (file: File): boolean => {
 // Helper function to progressively compress HEIC images
 const compressHeicImage = async (file: File): Promise<File | null> => {
   try {
-    // Load heic-convert only when needed to keep initial JS bundle smaller.
-    const { default: heicConvert } = await import("heic-convert");
+    // Use native browser encoders and avoid depending on Node's Buffer global.
+    const { default: heicConvert } = await import("heic-convert/browser");
     const buffer = await file.arrayBuffer();
     let quality = 0.99; // Start with good quality
     let jpegBuffer: Uint8Array;
@@ -56,7 +102,7 @@ const compressHeicImage = async (file: File): Promise<File | null> => {
     // Try different quality levels until file is small enough
     do {
       jpegBuffer = await heicConvert({
-        buffer: Buffer.from(buffer),
+        buffer: new Uint8Array(buffer),
         format: "JPEG",
         quality: quality,
       });
@@ -77,11 +123,8 @@ const compressHeicImage = async (file: File): Promise<File | null> => {
       }
     } while (jpegBuffer.length > MAX_FILE_SIZE);
 
-    const blob = new Blob([Buffer.from(jpegBuffer)], { type: "image/jpeg" });
-    const newFileName = file.name.replace(
-      /\.heic$/i,
-      `_${Math.round(quality * 100)}pct.jpg`
-    );
+    const blob = new Blob([new Uint8Array(jpegBuffer)], { type: "image/jpeg" });
+    const newFileName = `${file.name.replace(/\.hei[cf]$/i, "")}_${Math.round(quality * 100)}pct.jpg`;
     return new File([blob], newFileName, { type: "image/jpeg" });
   } catch (error) {
     console.error("Error compressing HEIC image:", error);
@@ -99,6 +142,8 @@ export function UploadSection({
   onRemoveImage,
   quality,
   onQualityChange,
+  resolution,
+  onResolutionChange,
   size,
   onSizeChange,
   onSubmit,
@@ -107,98 +152,82 @@ export function UploadSection({
   selectedProvider,
 }: UploadSectionProps) {
   const [isConverting, setIsConverting] = useState(false);
+  const processingFiles = useRef(false);
+  const model = getImageModel(selectedProvider);
+  const controlId = isMobile ? "mobile" : "desktop";
 
   const handleDragOver = useCallback((e: React.DragEvent) => {
     e.preventDefault();
     e.stopPropagation();
   }, []);
 
+  const addFiles = useCallback(
+    async (filesArray: File[]) => {
+      if (isLoading || processingFiles.current || filesArray.length === 0)
+        return;
+      const totalImages = images.length + filesArray.length;
+
+      if (totalImages > MAX_IMAGES) {
+        toast.error("Please select one image", {
+          description: "Remove the current image before uploading another.",
+          icon: "❌",
+        });
+        return;
+      }
+
+      const file = supportedImageFile(filesArray[0]!);
+      if (!file) {
+        toast.error("Unsupported image format", {
+          description: "Choose a JPG, PNG, WebP, HEIC, or HEIF image.",
+        });
+        return;
+      }
+      if (!isFileSizeValid(file)) return;
+
+      processingFiles.current = true;
+      setIsConverting(isHeicFile(file));
+      try {
+        const processed = isHeicFile(file)
+          ? await compressHeicImage(file)
+          : file;
+        if (processed) onImagesChange([...images, processed]);
+      } finally {
+        processingFiles.current = false;
+        setIsConverting(false);
+      }
+    },
+    [images, onImagesChange, isLoading],
+  );
+
   const handleDrop = useCallback(
     (e: React.DragEvent) => {
       e.preventDefault();
       e.stopPropagation();
-
-      if (!e.dataTransfer.files?.length) return;
-
-      const filesArray = Array.from(e.dataTransfer.files).filter((file) =>
-        file.type.startsWith("image/")
-      );
-
-      if (!filesArray.length) return;
-
-      const totalImages = images.length + filesArray.length;
-      if (totalImages > MAX_IMAGES) {
-        toast.error(`You can only upload up to ${MAX_IMAGES} images`, {
-          description: "Please remove some images first.",
-          icon: "❌",
-        });
-        return;
-      }
-
-      const validFiles = filesArray.filter(isFileSizeValid);
-      if (validFiles.length > 0) {
-        onImagesChange([...images, ...validFiles]);
-      }
+      void addFiles(Array.from(e.dataTransfer.files));
     },
-    [images, onImagesChange]
+    [addFiles],
   );
-
-  const processFiles = useCallback(async (files: File[]): Promise<File[]> => {
-    const processedFiles = await Promise.all(
-      files.map(async (file) => {
-        if (!isFileSizeValid(file)) return null;
-
-        if (file.type.includes("heic")) {
-          // Compress HEIC with progressive quality reduction
-          return await compressHeicImage(file);
-        }
-        return file;
-      })
-    );
-
-    return processedFiles.filter((file): file is File => file !== null);
-  }, []);
 
   const handleFileChange = useCallback(
-    async (e: React.ChangeEvent<HTMLInputElement>) => {
-      if (!e.target.files?.length) return;
-
-      const filesArray = Array.from(e.target.files);
-      const totalImages = images.length + filesArray.length;
-
-      if (totalImages > MAX_IMAGES) {
-        toast.error(`You can only upload up to ${MAX_IMAGES} images`, {
-          description: "Please remove some images first.",
-          icon: "❌",
-        });
-        return;
-      }
-
-      const hasHeicFiles = filesArray.some((file) =>
-        file.type.includes("heic")
-      );
-      if (hasHeicFiles) {
-        setIsConverting(true);
-      }
-
-      try {
-        const validFiles = await processFiles(filesArray);
-        if (validFiles.length > 0) {
-          onImagesChange([...images, ...validFiles]);
-        }
-      } finally {
-        setIsConverting(false);
-      }
+    (e: React.ChangeEvent<HTMLInputElement>) => {
+      const files = Array.from(e.currentTarget.files ?? []);
+      // Permit selecting the same file again after removing it or correcting an error.
+      e.currentTarget.value = "";
+      void addFiles(files);
     },
-    [images, onImagesChange, processFiles]
+    [addFiles],
   );
 
+  const isBusy = isLoading || isConverting;
   const remainingSlots = MAX_IMAGES - images.length;
 
   // Loading overlay component
   const LoadingOverlay = useCallback(
     () => (
-      <div className="absolute inset-0 bg-background/80 backdrop-blur-sm flex items-center justify-center z-10">
+      <div
+        role="status"
+        className="absolute inset-0 bg-background/80 backdrop-blur-sm flex items-center justify-center z-10"
+      >
         <div className="flex flex-col items-center gap-2">
           <Loader2 className="h-8 w-8 animate-spin text-primary" />
           <p className="text-sm text-muted-foreground">
@@ -207,7 +236,7 @@ export function UploadSection({
         </div>
       </div>
     ),
-    []
+    [],
   );
 
   // Upload area content component
@@ -217,11 +246,7 @@ export function UploadSection({
         {isMobile ? (
           <>
             <Upload className="h-8 w-8 text-gray-400 mb-2" />
-            <p className="text-xs text-muted-foreground">
-              {images.length > 0
-                ? "Tap to change photo"
-                : "Tap to upload photo"}
-            </p>
+            <p className="text-xs text-muted-foreground">Tap to upload photo</p>
           </>
         ) : (
           <>
@@ -229,20 +254,19 @@ export function UploadSection({
               <Upload className="h-8 w-8 text-gray-400" />
             </div>
             <p className="text-sm font-medium text-muted-foreground mb-1">
-              {images.length > 0
-                ? "Drop a new photo here to replace"
-                : "Drop your image here"}
+              Drop your image here
             </p>
             <p className="text-xs text-muted-foreground">or click to browse</p>
             <p className="mt-2 text-xs text-muted-foreground">
-              Upload your image (JPG, PNG, WebP, HEIC - will be converted to
-              JPEG)
+              JPG, PNG, WebP, HEIC or HEIF · Up to 4MB
+              <br />
+              HEIC and HEIF images are converted to JPEG.
             </p>
           </>
         )}
       </div>
     ),
-    [images.length]
+    [],
   );
 
   return (
@@ -251,7 +275,7 @@ export function UploadSection({
       <div>
         <h3 className="text-base font-semibold mb-4 flex items-center gap-2">
           <Upload className="h-4 w-4" />
-          Upload Your Photos{" "}
+          Upload Your Photo{" "}
           {images.length > 0 && `(${images.length}/${MAX_IMAGES})`}
         </h3>
 
@@ -259,7 +283,7 @@ export function UploadSection({
           <div
             className={`border-2 border-dashed border-gray-300 dark:border-gray-700 rounded-lg ${
               isMobile ? "p-4" : "p-10"
-            } text-center cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-800/50 transition-colors relative`}
+            } text-center hover:bg-gray-50 dark:hover:bg-gray-800/50 transition-colors relative focus-within:ring-2 focus-within:ring-ring ${isBusy ? "opacity-60" : "cursor-pointer"}`}
             onDragOver={!isMobile ? handleDragOver : undefined}
             onDrop={!isMobile ? handleDrop : undefined}
             style={{ touchAction: "pan-y" }}
@@ -267,20 +291,25 @@ export function UploadSection({
             {isConverting && <LoadingOverlay />}
             <input
               type="file"
-              accept="image/*"
+              accept="image/jpeg,image/png,image/webp,image/heic,image/heif,.heic,.heif"
               onChange={handleFileChange}
-              className="hidden"
+              className="sr-only"
               id={isMobile ? "mobile-image" : "desktop-image"}
-              disabled={isConverting}
+              disabled={isBusy}
             />
             <label
               htmlFor={isMobile ? "mobile-image" : "desktop-image"}
               className={`cursor-pointer block ${
-                isConverting ? "pointer-events-none" : ""
+                isBusy ? "pointer-events-none" : ""
               }`}
             >
               <UploadAreaContent isMobile={isMobile} />
             </label>
+            {isMobile && (
+              <p className="mt-2 text-xs text-muted-foreground">
+                JPG, PNG, WebP, HEIC or HEIF · Up to 4MB
+              </p>
+            )}
           </div>
         )}
       </div>
@@ -293,7 +322,9 @@ export function UploadSection({
             {images.length > 1 && (
               <Button
                 variant="outline"
+                type="button"
                 size="sm"
+                disabled={isBusy}
                 onClick={() => onImagesChange([])}
                 className="h-8 text-xs"
               >
@@ -309,10 +340,11 @@ export function UploadSection({
             {images.map((img, index) => (
               <ImagePreview
                 key={index}
-                src={URL.createObjectURL(img)}
+                src={img}
                 alt={`Selected image ${index + 1}`}
                 className="aspect-square"
                 onRemove={() => onRemoveImage(index)}
+                disabled={isBusy}
               />
             ))}
           </div>
@@ -321,67 +353,48 @@ export function UploadSection({
 
       {/* Configuration options */}
       <form onSubmit={onSubmit} className="space-y-6">
-        <div
-          className={`grid gap-6 ${
-            selectedProvider?.startsWith("gemini-") ? "grid-cols-1" : "grid-cols-2"
-          }`}
-        >
-          {/* Quality selector - only for OpenAI models */}
-          {(selectedProvider === "openai" ||
-            selectedProvider === "openai-mini") && (
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          {!!model?.qualities.length && (
             <div>
-              <Label htmlFor="quality" className="text-sm block mb-2">
+              <Label htmlFor={`${controlId}-quality`} className="mb-2 block">
                 Quality
               </Label>
-              <Select value={quality} onValueChange={onQualityChange}>
-                <SelectTrigger
-                  id="quality"
-                  className={`${isMobile ? "h-9" : "h-10"}`}
-                >
-                  <SelectValue placeholder="Select quality" />
+              <Select
+                value={quality}
+                onValueChange={onQualityChange}
+                disabled={isBusy}
+              >
+                <SelectTrigger id={`${controlId}-quality`}>
+                  <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="low">
-                    Low ~{" "}
-                    {selectedProvider === "openai-mini"
-                      ? "$0.01-0.02"
-                      : "$0.01-0.05"}
-                  </SelectItem>
-                  <SelectItem value="medium">
-                    Standard ~{" "}
-                    {selectedProvider === "openai-mini"
-                      ? "$0.02-0.05"
-                      : "$0.05-0.15"}
-                  </SelectItem>
-                  <SelectItem value="high">
-                    High ~{" "}
-                    {selectedProvider === "openai-mini"
-                      ? "$0.05-0.13"
-                      : "$0.15-0.40"}
-                  </SelectItem>
+                  {model.qualities.map((value) => (
+                    <SelectItem key={value} value={value}>
+                      {
+                        {
+                          low: "Low · quick drafts",
+                          medium: "Medium",
+                          high: "High",
+                          xhigh: "Extra high",
+                          max: "Maximum",
+                        }[value]
+                      }
+                    </SelectItem>
+                  ))}
                 </SelectContent>
               </Select>
-              <p className="text-xs text-muted-foreground mt-1">
-                {selectedProvider === "openai-mini"
-                  ? "Using cost-effective model (~3x cheaper)"
-                  : "Higher quality provides better detail but takes longer"}
+              <p className="mt-1 text-xs text-muted-foreground">
+                Higher quality can increase generation time and cost.
               </p>
             </div>
           )}
-
-          {/* Size selector */}
           <div>
-            <Label htmlFor="size" className="text-sm block mb-2">
-              {selectedProvider?.startsWith("gemini-")
-                ? "Aspect Ratio"
-                : "Output Size"}
+            <Label htmlFor={`${controlId}-size`} className="mb-2 block">
+              Aspect ratio
             </Label>
-            <Select value={size} onValueChange={onSizeChange}>
-              <SelectTrigger
-                id="size"
-                className={`${isMobile ? "h-9" : "h-10"}`}
-              >
-                <SelectValue placeholder="Select size" />
+            <Select value={size} onValueChange={onSizeChange} disabled={isBusy}>
+              <SelectTrigger id={`${controlId}-size`}>
+                <SelectValue />
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="1024x1024">Square (1:1)</SelectItem>
@@ -389,29 +402,50 @@ export function UploadSection({
                 <SelectItem value="1024x1536">Portrait (2:3)</SelectItem>
               </SelectContent>
             </Select>
-            <p className="text-xs text-muted-foreground mt-1">
-              {selectedProvider?.startsWith("gemini-")
-                ? "Choose the aspect ratio for your result"
-                : selectedProvider === "openai-mini"
-                ? "Choose your output dimensions (cost-effective pricing)"
-                : "Choose the aspect ratio for your result"}
-            </p>
+            {model?.provider === "openai" && (
+              <p className="mt-1 text-xs text-muted-foreground">
+                {size} pixels
+              </p>
+            )}
           </div>
+          {!!model?.resolutions.length && (
+            <div>
+              <Label htmlFor={`${controlId}-resolution`} className="mb-2 block">
+                Resolution
+              </Label>
+              <Select
+                value={resolution}
+                onValueChange={onResolutionChange}
+                disabled={isBusy || model.resolutions.length === 1}
+              >
+                <SelectTrigger id={`${controlId}-resolution`}>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  {model.resolutions.map((value) => (
+                    <SelectItem key={value} value={value}>
+                      {value}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              <p className="mt-1 text-xs text-muted-foreground">
+                {model.resolutions.length === 1
+                  ? "This model outputs at 1K."
+                  : "Larger outputs cost more; exact dimensions depend on aspect ratio."}
+              </p>
+            </div>
+          )}
         </div>
-
-        {/* Provider-specific info for Nano Banana */}
-        {selectedProvider?.startsWith("gemini-") && (
-          <div className="p-3 bg-blue-50 dark:bg-blue-900/20 rounded-md border border-blue-200 dark:border-blue-800">
-            <p className="text-xs text-blue-700 dark:text-blue-300">
-              <strong>Nano Banana:</strong> Image editing with your prompt.
-              Upload an image to transform it.
-            </p>
-          </div>
-        )}
 
         <Button
           type="submit"
-          disabled={isLoading || images.length === 0}
+          disabled={
+            isLoading ||
+            isConverting ||
+            images.length === 0 ||
+            !selectedProvider
+          }
           className={`w-full bg-[#00F5FF] text-[#1A1E33] hover:bg-[#00F5FF]/90 ${
             isMobile ? "h-10" : "h-12"
           } text-sm font-medium`}

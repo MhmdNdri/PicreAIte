@@ -21,58 +21,42 @@ import { useApiKeys } from "@/hooks/useApiKeys";
 import {
   ProviderSelect,
   type ProviderType,
-  type ApiKeySource,
 } from "../components/ProviderSelect";
-import { GROK_IMAGE_MODELS } from "@/lib/grok-models";
+import {
+  IMAGE_MODELS,
+  getModelSettings,
+  resolveKeySource,
+  type ImageQuality,
+  type ImageResolution,
+  type ImageSize,
+} from "@/lib/image-models";
+import { createImageForm } from "@/lib/image-form";
+import type { ImageGenerationResponse } from "@/lib/image-result";
 
 async function fetchPrompt(name: string) {
-  const response = await fetch(`/api/prompts/${name}`);
-  if (!response.ok) {
-    throw new Error("Failed to fetch prompt");
-  }
+  const response = await fetch(`/api/prompts/${encodeURIComponent(name)}`);
+  if (!response.ok) throw new Error("Failed to fetch style");
   return response.json();
 }
 
-async function generateImageOpenAI(data: FormData) {
-  const response = await fetch("/api/generateImage", {
+async function requestImage(form: FormData): Promise<ImageGenerationResponse> {
+  const model = form.get("model") as ProviderType;
+  const routes = {
+    openai: "/api/generateImage",
+    gemini: "/api/generateImageGemini",
+    grok: "/api/generateImageGrok",
+  };
+  const response = await fetch(routes[IMAGE_MODELS[model].provider], {
     method: "POST",
-    body: data,
+    body: form,
   });
-
-  if (!response.ok) {
-    const errorData = await response.json();
-    throw new Error(errorData.error || "Failed to generate image");
-  }
-
-  return response.json();
-}
-
-async function generateImageGemini(data: FormData) {
-  const response = await fetch("/api/generateImageGemini", {
-    method: "POST",
-    body: data,
+  const body = await response.json().catch(() => {
+    throw new Error(
+      "The server could not complete this image request. Please try again.",
+    );
   });
-
-  if (!response.ok) {
-    const errorData = await response.json();
-    throw new Error(errorData.error || "Failed to generate image");
-  }
-
-  return response.json();
-}
-
-async function generateImageGrok(data: FormData) {
-  const response = await fetch("/api/generateImageGrok", {
-    method: "POST",
-    body: data,
-  });
-
-  if (!response.ok) {
-    const errorData = await response.json();
-    throw new Error(errorData.error || "Failed to generate image");
-  }
-
-  return response.json();
+  if (!response.ok) throw new Error(body.error || "Failed to generate image");
+  return body;
 }
 
 export default function PromptPage({
@@ -82,245 +66,113 @@ export default function PromptPage({
 }) {
   const { isLoaded, userId } = useAuth();
   const router = useRouter();
-  const { hasApiKey } = useApiKeys();
+  const { hasApiKey, getApiKey } = useApiKeys();
   const [images, setImages] = useState<File[]>([]);
-  const [quality, setQuality] = useState<"low" | "medium" | "high">("high");
-  const [size, setSize] = useState<"1024x1024" | "1536x1024" | "1024x1536">(
-    "1024x1024"
-  );
-  const [selectedProvider, setSelectedProvider] = useState<
-    ProviderType | undefined
-  >(undefined);
-  const [selectedApiKey, setSelectedApiKey] = useState<string>("");
-  const [selectedKeySource, setSelectedKeySource] = useState<
-    ApiKeySource | null
-  >(null);
-
-  const resolvedParams = use(params);
-  const promptName = resolvedParams.name;
-
+  const [quality, setQuality] = useState<ImageQuality>("high");
+  const [resolution, setResolution] = useState<ImageResolution>("1K");
+  const [size, setSize] = useState<ImageSize>("1024x1024");
+  const [selectedProvider, setSelectedProvider] = useState<ProviderType>();
+  const { name: promptName } = use(params);
   const { data: prompt, isLoading: isPromptLoading } = useQuery({
     queryKey: ["prompt", promptName],
     queryFn: () => fetchPrompt(promptName),
-    enabled: !!promptName,
+    enabled: !!promptName && !!userId,
   });
-
   const {
-    mutate: generateOpenAIMutation,
-    isPending: isOpenAIPending,
-    error: openAIError,
-    data: openAIData,
-    reset: resetOpenAI,
-  } = useMutation({
-    mutationFn: generateImageOpenAI,
-  });
+    mutate,
+    isPending,
+    error: requestError,
+    data,
+    reset,
+  } = useMutation({ mutationFn: requestImage, retry: false });
+  const error = requestError?.message ?? null;
+  const result = data?.data[0]?.b64_json ?? null;
 
-  const {
-    mutate: generateGeminiMutation,
-    isPending: isGeminiPending,
-    error: geminiError,
-    data: geminiData,
-    reset: resetGemini,
-  } = useMutation({
-    mutationFn: generateImageGemini,
-  });
-
-  const {
-    mutate: generateGrokMutation,
-    isPending: isGrokPending,
-    error: grokError,
-    data: grokData,
-    reset: resetGrok,
-  } = useMutation({
-    mutationFn: generateImageGrok,
-  });
-
-  const isPending = isOpenAIPending || isGeminiPending || isGrokPending;
-  const error =
-    openAIError?.message ||
-    geminiError?.message ||
-    grokError?.message ||
-    null;
-  const data = openAIData || geminiData || grokData;
-
-  const getImageResult = useCallback(() => {
-    if (!data?.data?.[0]) return null;
-    const imageData = data.data[0];
-    return imageData.b64_json || null;
-  }, [data]);
-
-  const getUsageData = useCallback(() => {
-    if (!data?.usage) return undefined;
-    return data.usage;
-  }, [data]);
+  useEffect(() => {
+    if (isLoaded && !userId) router.replace("/sign-in");
+  }, [isLoaded, userId, router]);
 
   const handleProviderSelect = useCallback(
-    (provider: ProviderType, apiKey: string, keySource: ApiKeySource) => {
-      if (
-        provider !== selectedProvider ||
-        apiKey !== selectedApiKey ||
-        keySource !== selectedKeySource
-      ) {
-        setSelectedProvider(provider);
-        setSelectedApiKey(apiKey);
-        setSelectedKeySource(keySource);
-        resetOpenAI();
-        resetGemini();
-        resetGrok();
-      }
+    (provider: ProviderType) => {
+      setSelectedProvider(provider);
+      const settings = getModelSettings(provider, quality, resolution);
+      setQuality(settings.quality);
+      setResolution(settings.resolution);
+      reset();
     },
-    [
-      selectedProvider,
-      selectedApiKey,
-      selectedKeySource,
-      resetOpenAI,
-      resetGemini,
-      resetGrok,
-    ]
+    [quality, resolution, reset],
   );
 
-  const handleImagesChange = useCallback((files: File[]) => {
-    setImages(files);
-  }, []);
-
-  const handleRemoveImage = useCallback((index: number) => {
-    setImages((images) => images.filter((_, i) => i !== index));
-  }, []);
-
-  const handleSubmit = useCallback(
-    async (e: React.FormEvent) => {
-      e.preventDefault();
-
-      if (!selectedProvider || !selectedApiKey || !selectedKeySource) {
-        alert("Please select a provider first");
-        return;
-      }
-
-      // All providers require image for editing
-      if (images.length === 0) {
-        alert("Please upload an image first");
-        return;
-      }
-
-      const formData = new FormData();
-      formData.append("prompt", prompt.promptDesc);
-
-      if (selectedProvider === "openai" || selectedProvider === "openai-mini") {
-        formData.append("apiKey", selectedApiKey);
-        formData.append(
-          "model",
-          selectedProvider === "openai-mini"
-            ? "gpt-image-1-mini"
-            : "gpt-image-2"
-        );
-        formData.append("quality", quality);
-        formData.append("size", size);
-        formData.append("n", "1");
-
-        images.forEach((image) => {
-          formData.append("image[]", image);
-        });
-        if (selectedKeySource === "openrouter") {
-          formData.append("sourceProvider", "openai");
-        }
-
-        generateOpenAIMutation(formData);
-      } else if (selectedProvider && selectedProvider in GROK_IMAGE_MODELS) {
-        // Grok models (image editing)
-        formData.append("apiKey", selectedApiKey);
-        formData.append("model", selectedProvider);
-        const aspectRatioMap: Record<string, string> = {
-          "1024x1024": "1:1",
-          "1536x1024": "16:9",
-          "1024x1536": "9:16",
-        };
-        formData.append("aspectRatio", aspectRatioMap[size] || "1:1");
-        formData.append("image", images[0]!);
-        if (selectedKeySource === "openrouter") {
-          formData.append("sourceProvider", "grok");
-        }
-        generateGrokMutation(formData);
-      } else if (selectedProvider) {
-        // Nano Banana models (image editing)
-        formData.append("apiKey", selectedApiKey);
-        formData.append("model", selectedProvider);
-        // Map size to Gemini aspect ratio (1:1, 3:4, 4:3, 9:16, 16:9)
-        // 1536x1024 = 3:2 → 4:3 (closest landscape); 1024x1536 = 2:3 → 3:4 (closest portrait)
-        const aspectRatioMap: Record<string, string> = {
-          "1024x1024": "1:1",
-          "1536x1024": "4:3",
-          "1024x1536": "3:4",
-        };
-        formData.append("aspectRatio", aspectRatioMap[size] || "1:1");
-        formData.append("image", images[0]!);
-        if (selectedKeySource === "openrouter") {
-          formData.append("sourceProvider", "gemini");
-        }
-        generateGeminiMutation(formData);
-      }
-    },
-    [
-      selectedProvider,
-      selectedApiKey,
-      selectedKeySource,
-      prompt?.promptDesc,
-      quality,
-      size,
-      images,
-      generateOpenAIMutation,
-      generateGeminiMutation,
-      generateGrokMutation,
-    ]
+  const handleImagesChange = useCallback(
+    (files: File[]) => setImages(files),
+    [],
   );
-
+  const handleRemoveImage = useCallback(
+    (index: number) =>
+      setImages((current) => current.filter((_, i) => i !== index)),
+    [],
+  );
   const handleReset = useCallback(() => {
-    resetOpenAI();
-    resetGemini();
-    resetGrok();
+    reset();
     setImages([]);
-  }, [resetOpenAI, resetGemini, resetGrok]);
-
+  }, [reset]);
+  const handleSubmit = useCallback(
+    (event: React.FormEvent) => {
+      event.preventDefault();
+      const selectedKeySource = selectedProvider
+        ? resolveKeySource(selectedProvider, hasApiKey)
+        : null;
+      const selectedApiKey = selectedKeySource
+        ? getApiKey(selectedKeySource)
+        : undefined;
+      if (
+        !selectedProvider ||
+        !selectedApiKey ||
+        !selectedKeySource ||
+        !images[0] ||
+        !prompt?.promptDesc ||
+        isPending
+      )
+        return;
+      reset();
+      mutate(
+        createImageForm({
+          model: selectedProvider,
+          apiKey: selectedApiKey,
+          keySource: selectedKeySource,
+          prompt: prompt.promptDesc,
+          image: images[0],
+          quality,
+          resolution,
+          size,
+        }),
+      );
+    },
+    [
+      selectedProvider,
+      hasApiKey,
+      getApiKey,
+      images,
+      prompt,
+      quality,
+      resolution,
+      size,
+      isPending,
+      reset,
+      mutate,
+    ],
+  );
   const hasAnyApiKey =
     hasApiKey("openai") ||
     hasApiKey("gemini") ||
     hasApiKey("grok") ||
     hasApiKey("openrouter");
 
-  useEffect(() => {
-    if (isLoaded && !selectedProvider) {
-      const openaiKey = localStorage.getItem("openai_api_key");
-      const geminiKey = localStorage.getItem("gemini_api_key");
-      const grokKey = localStorage.getItem("grok_api_key");
-      const openrouterKey = localStorage.getItem("openrouter_api_key");
-
-      if (openaiKey) {
-        // Default to cost-effective gpt-image-1-mini model
-        setSelectedProvider("openai-mini");
-        setSelectedApiKey(openaiKey);
-        setSelectedKeySource("openai");
-      } else if (geminiKey) {
-        setSelectedProvider("gemini-nano-banana");
-        setSelectedApiKey(geminiKey);
-        setSelectedKeySource("gemini");
-      } else if (grokKey) {
-        setSelectedProvider("grok-imagine");
-        setSelectedApiKey(grokKey);
-        setSelectedKeySource("grok");
-      } else if (openrouterKey) {
-        // OpenRouter key enables all providers; default to the most compatible path.
-        setSelectedProvider("openai");
-        setSelectedApiKey(openrouterKey);
-        setSelectedKeySource("openrouter");
-      }
-    }
-  }, [isLoaded, selectedProvider]);
-
   if (!isLoaded) {
     return null;
   }
 
   if (!userId) {
-    router.push("/sign-in");
     return null;
   }
 
@@ -333,8 +185,14 @@ export default function PromptPage({
   }
 
   if (!prompt) {
-    router.push("/playground");
-    return null;
+    return (
+      <p className="p-6">
+        This style could not be loaded.{" "}
+        <Link href="/playground" className="underline">
+          Back to styles
+        </Link>
+      </p>
+    );
   }
 
   return (
@@ -397,15 +255,17 @@ export default function PromptPage({
                   onRemoveImage={handleRemoveImage}
                   quality={quality}
                   onQualityChange={setQuality}
+                  resolution={resolution}
+                  onResolutionChange={setResolution}
                   size={size}
                   onSizeChange={setSize}
                   onSubmit={handleSubmit}
                   isLoading={isPending}
-                  result={getImageResult()}
+                  result={result}
                   error={error}
                   onReset={handleReset}
                   selectedProvider={selectedProvider}
-                  usage={getUsageData()}
+                  resultInfo={data}
                 />
 
                 <MobileLayout
@@ -415,15 +275,17 @@ export default function PromptPage({
                   onRemoveImage={handleRemoveImage}
                   quality={quality}
                   onQualityChange={setQuality}
+                  resolution={resolution}
+                  onResolutionChange={setResolution}
                   size={size}
                   onSizeChange={setSize}
                   onSubmit={handleSubmit}
                   isLoading={isPending}
-                  result={getImageResult()}
+                  result={result}
                   error={error}
                   onReset={handleReset}
                   selectedProvider={selectedProvider}
-                  usage={getUsageData()}
+                  resultInfo={data}
                 />
               </>
             )}

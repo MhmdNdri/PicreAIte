@@ -1,116 +1,83 @@
 "use client";
 
-import { useState, useCallback, useMemo } from "react";
+import { IMAGE_MIME_TYPES, imageExtension } from "@/lib/image-result";
+import { useState, useCallback, useRef } from "react";
 import { Button } from "@/components/ui/button";
 import { Loader2 } from "lucide-react";
 import { useUploadThing } from "@/providers/uploadthing-provider";
 import { toast } from "sonner";
-import heicConvert from "heic-convert";
 
 interface UploadImageButtonProps {
   imageData: string;
-  onUploadComplete: (url: string, key: string) => void;
+  onUploadComplete?: (url: string, key: string) => void;
   className?: string;
   promptType?: string;
+  disabled?: boolean;
 }
 
-// Helper function to extract mime type from base64 data
-const extractMimeType = (dataPart: string | undefined): string => {
-  if (!dataPart?.includes(":")) return "image/png";
-
-  const mimeParts = dataPart.split(":");
-  if (mimeParts.length <= 1 || !mimeParts[1]?.includes(";")) return "image/png";
-
-  const mimeType = mimeParts[1].split(";")[0];
-  return mimeType || "image/png";
-};
-
-// Helper function to convert base64 to array buffer
-const base64ToArrayBuffer = (base64: string): ArrayBuffer => {
-  const byteString = window.atob(base64);
-  const arrayBuffer = new ArrayBuffer(byteString.length);
-  const uint8Array = new Uint8Array(arrayBuffer);
-
-  for (let i = 0; i < byteString.length; i++) {
-    uint8Array[i] = byteString.charCodeAt(i);
+export function generatedImageFile(
+  imageData: string,
+  promptType: string,
+): File {
+  const match = /^data:(image\/[a-z]+);base64,([A-Za-z0-9+/]+={0,2})$/.exec(
+    imageData,
+  );
+  const mimeType = match?.[1];
+  const encoded = match?.[2];
+  if (
+    !mimeType ||
+    !encoded ||
+    !IMAGE_MIME_TYPES.some((type) => type === mimeType)
+  ) {
+    throw new Error(
+      "This image cannot be saved. Generate a PNG, JPG, or WebP image.",
+    );
   }
-
-  return arrayBuffer;
-};
-
-// Helper function to generate file name
-const generateFileName = (promptType: string): string => {
+  const bytes = Uint8Array.from(atob(encoded), (character) =>
+    character.charCodeAt(0),
+  );
   const dateStr = new Date().toISOString().split("T")[0];
   const uniqueId = Math.random().toString(36).substring(2, 10);
-  return `${promptType}_${dateStr}_${uniqueId}.png`;
-};
+  const safeName =
+    promptType.replace(/[<>:"/\\|?*\u0000-\u001f]/g, "_").slice(0, 100) ||
+    "image";
+  return new File(
+    [bytes],
+    `${safeName}_${dateStr}_${uniqueId}.${imageExtension(mimeType)}`,
+    { type: mimeType },
+  );
+}
 
 export function UploadImageButton({
   imageData,
   onUploadComplete,
   className,
   promptType = "image",
+  disabled = false,
 }: UploadImageButtonProps) {
   const [isUploading, setIsUploading] = useState(false);
-  const [isConverting, setIsConverting] = useState(false);
+  const uploading = useRef(false);
+  const [savedImage, setSavedImage] = useState<string | null>(null);
 
   const { startUpload, isUploading: isUploadingUT } = useUploadThing(
-    "generatedImageUploader"
+    "generatedImageUploader",
   );
 
-  // Memoize the button state
-  const buttonState = useMemo(() => {
-    if (isConverting) return { text: "Converting...", loading: true };
-    if (isUploading || isUploadingUT)
-      return { text: "Saving...", loading: true };
-    return { text: "Save to Gallery", loading: false };
-  }, [isConverting, isUploading, isUploadingUT]);
-
-  const convertHeicToPng = useCallback(async (blob: Blob): Promise<Blob> => {
-    const buffer = await blob.arrayBuffer();
-    const pngBuffer = await heicConvert({
-      buffer: Buffer.from(buffer),
-      format: "PNG",
-      quality: 1,
-    });
-    return new Blob([new Uint8Array(pngBuffer)], { type: "image/png" });
-  }, []);
+  const loading = isUploading || isUploadingUT;
+  const isSaved = savedImage === imageData;
 
   const handleUpload = useCallback(async () => {
-    if (!imageData || !imageData.includes(",")) {
-      toast.error("Invalid image data");
-      return;
-    }
+    if (disabled || uploading.current || isUploadingUT || isSaved) return;
 
     try {
+      uploading.current = true;
       setIsUploading(true);
-      const [header, dataPart] = imageData.split(",");
-
-      if (!dataPart) {
-        toast.error("Invalid image data format");
+      const file = generatedImageFile(imageData, promptType);
+      if (file.size > 8 * 1024 * 1024) {
+        toast.error("This image exceeds the gallery's 8MB limit", {
+          description: "Use Download to keep the full-quality image.",
+        });
         return;
-      }
-
-      const mimePart = extractMimeType(header);
-      const arrayBuffer = base64ToArrayBuffer(dataPart);
-      const fileName = generateFileName(promptType);
-
-      let blob = new Blob([arrayBuffer], { type: mimePart });
-      let file = new File([blob], fileName, { type: "image/png" });
-
-      // Convert HEIC to PNG if needed
-      if (mimePart.includes("heic")) {
-        try {
-          setIsConverting(true);
-          blob = await convertHeicToPng(blob);
-          file = new File([blob], fileName, { type: "image/png" });
-        } catch (error) {
-          console.error("Error converting HEIC to PNG:", error);
-          toast.error("Failed to convert HEIC image");
-          return;
-        } finally {
-          setIsConverting(false);
-        }
       }
 
       const uploadResult = await startUpload([file]);
@@ -121,24 +88,38 @@ export function UploadImageButton({
       }
 
       const { url, key } = uploadResult[0];
+      setSavedImage(imageData);
       toast.success("Image saved to gallery");
-      onUploadComplete(url, key);
+      onUploadComplete?.(url, key);
     } catch (error) {
       console.error("Error uploading image:", error);
-      toast.error("Error uploading image");
+      toast.error(
+        error instanceof Error ? error.message : "Error uploading image",
+      );
     } finally {
+      uploading.current = false;
       setIsUploading(false);
     }
-  }, [imageData, startUpload, onUploadComplete, promptType, convertHeicToPng]);
+  }, [
+    imageData,
+    startUpload,
+    onUploadComplete,
+    promptType,
+    disabled,
+    isUploadingUT,
+    isSaved,
+  ]);
 
   return (
     <Button
+      type="button"
       onClick={handleUpload}
-      disabled={buttonState.loading}
+      disabled={disabled || loading || isSaved || !imageData}
+      aria-busy={loading}
       className={className}
     >
-      {buttonState.loading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-      {buttonState.text}
+      {loading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+      {loading ? "Saving..." : isSaved ? "Saved to Gallery" : "Save to Gallery"}
     </Button>
   );
 }

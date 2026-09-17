@@ -45,7 +45,7 @@ const PROVIDERS: Record<ProviderType, ProviderConfig> = {
   openai: {
     name: "OpenAI",
     description:
-      "Add your OpenAI API key to use gpt-image-2 for image editing.",
+      "Use GPT Image 2.5 Sunburst, Flare, or the budget GPT Image 1 Mini.",
     placeholder: "sk-...",
     validator: (key: string) => key.startsWith("sk-"),
     asyncValidator: validateOpenAIApiKey,
@@ -53,24 +53,22 @@ const PROVIDERS: Record<ProviderType, ProviderConfig> = {
   gemini: {
     name: "Google Gemini",
     description:
-      "Add your Google AI API key for Nano Banana and Nano Banana Pro image editing.",
+      "Use Nano Banana 2, Nano Banana 2 Lite, and Nano Banana Pro with a Google AI key.",
     placeholder: "AI...",
     validator: (key: string) => key.length > 10,
     asyncValidator: validateGeminiApiKey,
   },
   grok: {
     name: "xAI Grok",
-    description:
-      "Add your xAI API key to use Grok Imagine for image editing.",
-    placeholder: "xai-... or gsk_...",
-    validator: (key: string) =>
-      key.startsWith("xai-") || key.startsWith("gsk_"),
+    description: "Use Grok Imagine Image 2.0 with an xAI API key.",
+    placeholder: "xai-...",
+    validator: (key: string) => key.startsWith("xai-"),
     asyncValidator: validateGrokApiKey,
   },
   openrouter: {
     name: "OpenRouter",
     description:
-      "Add one OpenRouter API key to use OpenRouter models directly and as fallback when provider-specific keys are missing.",
+      "Access all listed image models with one OpenRouter key when a direct provider key is absent. Your selected model is preserved.",
     placeholder: "sk-or-v1-...",
     validator: (key: string) => key.startsWith("sk-or-"),
     asyncValidator: validateOpenRouterApiKey,
@@ -78,7 +76,7 @@ const PROVIDERS: Record<ProviderType, ProviderConfig> = {
 };
 
 export function ApiKeyManager() {
-  const { apiKeys, isLoaded, setApiKey, removeApiKey, hasApiKey, getApiKey } =
+  const { isLoaded, setApiKey, removeApiKey, hasApiKey, getApiKey } =
     useApiKeys();
   const [activeProvider, setActiveProvider] = useState<ProviderType>("openai");
   const [inputValue, setInputValue] = useState("");
@@ -86,7 +84,7 @@ export function ApiKeyManager() {
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
   const [showDeleteModal, setShowDeleteModal] = useState<ProviderType | null>(
-    null
+    null,
   );
 
   const currentProvider = PROVIDERS[activeProvider];
@@ -105,7 +103,7 @@ export function ApiKeyManager() {
 
   const validateApiKey = async (
     provider: ProviderType,
-    key: string
+    key: string,
   ): Promise<boolean> => {
     const config = PROVIDERS[provider];
 
@@ -122,7 +120,7 @@ export function ApiKeyManager() {
           setError(`${config.name} API key validation failed`);
           return false;
         }
-      } catch (err) {
+      } catch {
         setError(`Failed to validate ${config.name} API key`);
         return false;
       } finally {
@@ -134,6 +132,7 @@ export function ApiKeyManager() {
   };
 
   const handleSave = async () => {
+    if (isValidating) return;
     clearMessages();
 
     if (!inputValue.trim()) {
@@ -141,11 +140,20 @@ export function ApiKeyManager() {
       return;
     }
 
-    const isValid = await validateApiKey(activeProvider, inputValue);
+    const key = inputValue.trim();
+    const isValid = await validateApiKey(activeProvider, key);
     if (isValid) {
-      setApiKey(activeProvider, inputValue);
-      setInputValue("");
-      showSuccessMessage(`${currentProvider.name} API key saved successfully`);
+      try {
+        setApiKey(activeProvider, key);
+        setInputValue("");
+        showSuccessMessage(
+          `${currentProvider.name} API key saved successfully`,
+        );
+      } catch {
+        setError(
+          "Your browser blocked saving the key. Allow site storage and try again.",
+        );
+      }
     }
   };
 
@@ -155,8 +163,16 @@ export function ApiKeyManager() {
 
   const confirmDelete = () => {
     if (showDeleteModal) {
-      removeApiKey(showDeleteModal);
-      showSuccessMessage(`${PROVIDERS[showDeleteModal].name} API key deleted`);
+      try {
+        removeApiKey(showDeleteModal);
+        showSuccessMessage(
+          `${PROVIDERS[showDeleteModal].name} API key deleted`,
+        );
+      } catch {
+        setError(
+          "Your browser blocked removing the key. Allow site storage and try again.",
+        );
+      }
       setShowDeleteModal(null);
     }
   };
@@ -200,14 +216,16 @@ export function ApiKeyManager() {
 
       <h2 className="text-lg font-semibold">API Keys</h2>
       <p className="text-sm text-muted-foreground">
-        Manage your API keys for different AI providers. Keys are stored locally
-        in your browser.
+        Keys are stored in this browser. When you transform an image, the
+        selected key is sent through PicreAIte to your provider. Charges apply
+        to your own provider account.
       </p>
 
-      <div className="flex border-b border-gray-200 dark:border-gray-700">
+      <div className="flex flex-wrap border-b border-gray-200 dark:border-gray-700">
         {(Object.keys(PROVIDERS) as ProviderType[]).map((provider) => (
           <button
             key={provider}
+            disabled={isValidating}
             onClick={() => {
               setActiveProvider(provider);
               setInputValue("");
@@ -249,6 +267,7 @@ export function ApiKeyManager() {
               type="password"
               id="apiKey"
               value={inputValue}
+              disabled={isValidating}
               onChange={(e) => setInputValue(e.target.value)}
               className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
               placeholder={currentProvider.placeholder}
@@ -295,6 +314,7 @@ export function ApiKeyManager() {
             {hasCurrentKey && (
               <button
                 onClick={() => handleDelete(activeProvider)}
+                disabled={isValidating}
                 className="bg-red-500 text-white hover:bg-red-600 py-2 px-4 rounded-md text-sm font-medium"
               >
                 Delete

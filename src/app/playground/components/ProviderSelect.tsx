@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useEffect } from "react";
 import { useApiKeys } from "@/hooks/useApiKeys";
 import {
   Select,
@@ -11,86 +11,27 @@ import {
 } from "@/components/ui/select";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
-import { Zap, Sparkles, AlertCircle } from "lucide-react";
 import Link from "next/link";
 import {
-  GEMINI_IMAGE_MODELS,
-  type GeminiImageModelKey,
-} from "@/lib/gemini-models";
-import {
-  GROK_IMAGE_MODELS,
-  type GrokImageModelKey,
-} from "@/lib/grok-models";
+  IMAGE_MODELS,
+  IMAGE_MODEL_KEYS,
+  MODEL_CATALOG_CHECKED_AT,
+  resolveKeySource,
+  type ImageModelKey,
+  type ApiKeySource,
+} from "@/lib/image-models";
 
-export type ProviderType =
-  | "openai"
-  | "openai-mini"
-  | GeminiImageModelKey
-  | GrokImageModelKey;
-
-export type ApiKeySource = "openai" | "gemini" | "grok" | "openrouter";
+export type ProviderType = ImageModelKey;
+export type { ApiKeySource } from "@/lib/image-models";
 
 interface ProviderSelectProps {
   onProviderSelect: (
     provider: ProviderType,
     apiKey: string,
-    keySource: ApiKeySource
+    keySource: ApiKeySource,
   ) => void;
   selectedProvider?: ProviderType;
   disabled?: boolean;
-}
-
-const OPENAI_PROVIDERS = {
-  openai: {
-    name: "gpt-image-2",
-    displayName: "OpenAI Standard",
-    icon: <Zap className="h-4 w-4" />,
-    color: "text-emerald-600 dark:text-emerald-400",
-    badge: "Standard",
-    badgeColor:
-      "bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-300",
-    description: "High-quality image generation",
-  },
-  "openai-mini": {
-    name: "gpt-image-1-mini",
-    displayName: "OpenAI Mini",
-    icon: <Zap className="h-4 w-4" />,
-    color: "text-emerald-500 dark:text-emerald-400",
-    badge: "3x Cheaper",
-    badgeColor:
-      "bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-300",
-    description: "Cost-effective image generation",
-  },
-};
-
-function getProviderDisplay(provider: ProviderType) {
-  if (provider === "openai" || provider === "openai-mini") {
-    return OPENAI_PROVIDERS[provider];
-  }
-  if (provider in GEMINI_IMAGE_MODELS) {
-    const config = GEMINI_IMAGE_MODELS[provider as GeminiImageModelKey];
-    return {
-      name: config.id,
-      displayName: config.name,
-      icon: <Sparkles className="h-4 w-4" />,
-      color: "text-blue-600 dark:text-blue-400",
-      badge: "Image edit",
-      badgeColor:
-        "bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-300",
-      description: config.description,
-    };
-  }
-  const config = GROK_IMAGE_MODELS[provider as GrokImageModelKey];
-  return {
-    name: config.id,
-    displayName: config.name,
-    icon: <Sparkles className="h-4 w-4" />,
-    color: "text-purple-600 dark:text-purple-400",
-    badge: "xAI",
-    badgeColor:
-      "bg-purple-100 text-purple-700 dark:bg-purple-900/30 dark:text-purple-300",
-    description: config.description,
-  };
 }
 
 export function ProviderSelect({
@@ -99,172 +40,132 @@ export function ProviderSelect({
   disabled = false,
 }: ProviderSelectProps) {
   const { hasApiKey, getApiKey, isLoaded } = useApiKeys();
-  const [availableProviders, setAvailableProviders] = useState<ProviderType[]>(
-    []
+  const availableModels = IMAGE_MODEL_KEYS.filter((key) =>
+    resolveKeySource(key, hasApiKey),
   );
 
   useEffect(() => {
-    if (isLoaded) {
-      const providers = new Set<ProviderType>();
-      const hasOpenRouter = hasApiKey("openrouter");
+    if (
+      !isLoaded ||
+      disabled ||
+      (selectedProvider && resolveKeySource(selectedProvider, hasApiKey))
+    )
+      return;
+    // Preserve the app's budget-first default for existing direct-key users.
+    const defaults: ProviderType[] = [
+      "openai-mini",
+      "gemini-nano-banana",
+      "grok-imagine",
+      "openai",
+    ];
+    const initial =
+      defaults.find((key) => hasApiKey(IMAGE_MODELS[key].provider)) ??
+      (hasApiKey("openrouter") ? "openai" : undefined);
+    if (!initial) return;
+    const source = resolveKeySource(initial, hasApiKey)!;
+    const key = getApiKey(source);
+    if (key) onProviderSelect(initial, key, source);
+  }, [
+    isLoaded,
+    disabled,
+    selectedProvider,
+    hasApiKey,
+    getApiKey,
+    onProviderSelect,
+  ]);
 
-      if (hasApiKey("openai") || hasOpenRouter) {
-        providers.add("openai");
-        providers.add("openai-mini");
-      }
-      if (hasApiKey("gemini") || hasOpenRouter) {
-        (Object.keys(GEMINI_IMAGE_MODELS) as GeminiImageModelKey[]).forEach(
-          (key) => providers.add(key)
-        );
-      }
-      if (hasApiKey("grok") || hasOpenRouter) {
-        (Object.keys(GROK_IMAGE_MODELS) as GrokImageModelKey[]).forEach((key) =>
-          providers.add(key)
-        );
-      }
-
-      setAvailableProviders(Array.from(providers));
-    }
-  }, [isLoaded, hasApiKey]);
-
-  const resolveKeySource = (provider: ProviderType): ApiKeySource | null => {
-    if (provider === "openai" || provider === "openai-mini") {
-      if (hasApiKey("openai")) return "openai";
-      if (hasApiKey("openrouter")) return "openrouter";
-      return null;
-    }
-
-    if (provider in GROK_IMAGE_MODELS) {
-      if (hasApiKey("grok")) return "grok";
-      if (hasApiKey("openrouter")) return "openrouter";
-      return null;
-    }
-
-    if (provider in GEMINI_IMAGE_MODELS) {
-      if (hasApiKey("gemini")) return "gemini";
-      if (hasApiKey("openrouter")) return "openrouter";
-      return null;
-    }
-
-    return null;
-  };
-
-  const handleProviderChange = (provider: string) => {
-    const typedProvider = provider as ProviderType;
-    const keySource = resolveKeySource(typedProvider);
-    if (!keySource) return;
-
-    const apiKey = getApiKey(keySource);
-    if (apiKey) {
-      onProviderSelect(typedProvider, apiKey, keySource);
-    }
-  };
-
-  if (!isLoaded) {
+  if (!isLoaded)
+    return <div className="h-11 animate-pulse rounded-md bg-muted" />;
+  if (!availableModels.length)
     return (
-      <div className="space-y-2">
-        <Label className="text-sm font-medium">AI Provider</Label>
-        <div className="h-10 bg-gray-100 dark:bg-gray-800 rounded-md animate-pulse" />
-      </div>
+      <p className="text-sm text-muted-foreground">
+        Add a provider key or one OpenRouter key in{" "}
+        <Link href="/api-key" className="underline">
+          API Key Settings
+        </Link>
+        .
+      </p>
     );
-  }
 
-  if (availableProviders.length === 0) {
-    return (
-      <div className="space-y-2">
-        <Label className="text-sm font-medium">AI Provider</Label>
-        <div className="p-3 border border-orange-200 bg-orange-50 dark:bg-orange-900/10 dark:border-orange-800 rounded-md">
-          <div className="flex items-start gap-2">
-            <AlertCircle className="h-4 w-4 text-orange-600 dark:text-orange-400 mt-0.5 flex-shrink-0" />
-            <div className="flex-1">
-              <p className="text-sm text-orange-700 dark:text-orange-300">
-                No API keys configured.{" "}
-                <Link
-                  href="/api-key"
-                  className="underline font-medium hover:text-orange-800 dark:hover:text-orange-200"
-                >
-                  Set them up here
-                </Link>
-              </p>
-            </div>
-          </div>
-        </div>
-      </div>
-    );
-  }
-
-  const selectedProviderData = selectedProvider
-    ? getProviderDisplay(selectedProvider)
+  const selected = selectedProvider
+    ? IMAGE_MODELS[selectedProvider]
+    : undefined;
+  const source = selectedProvider
+    ? resolveKeySource(selectedProvider, hasApiKey)
     : null;
 
   return (
-    <div className="space-y-2">
-      <Label className="text-sm font-medium">AI Provider</Label>
+    <div className="space-y-3">
+      <Label htmlFor="image-model">Image model</Label>
       <Select
-        value={selectedProvider || ""}
-        onValueChange={handleProviderChange}
+        value={selectedProvider ?? ""}
         disabled={disabled}
+        onValueChange={(value) => {
+          const model = value as ProviderType;
+          const keySource = resolveKeySource(model, hasApiKey);
+          if (!keySource) return;
+          const apiKey = getApiKey(keySource);
+          if (apiKey) onProviderSelect(model, apiKey, keySource);
+        }}
       >
-        <SelectTrigger className="w-full h-11 bg-white dark:bg-gray-900 border-gray-200 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors">
-          {selectedProviderData ? (
-            <div className="flex items-center gap-2 w-full">
-              <span className={selectedProviderData.color}>
-                {selectedProviderData.icon}
-              </span>
-              <span className="font-medium text-gray-900 dark:text-gray-100">
-                {selectedProviderData.displayName}
-              </span>
-              <Badge
-                className={`ml-auto ${selectedProviderData.badgeColor} border-0`}
-              >
-                {selectedProviderData.badge}
-              </Badge>
-            </div>
-          ) : (
-            <SelectValue placeholder="Select AI provider" />
-          )}
+        <SelectTrigger
+          id="image-model"
+          className="w-full min-w-0 h-auto min-h-11 text-left [&>span]:truncate"
+        >
+          <SelectValue placeholder="Choose a model" />
         </SelectTrigger>
-        <SelectContent className="bg-white dark:bg-gray-900 border-gray-200 dark:border-gray-700">
-          {availableProviders.map((provider) => {
-            const data = getProviderDisplay(provider);
-            return (
-              <SelectItem
-                key={provider}
-                value={provider}
-                className="cursor-pointer focus:bg-gray-100 dark:focus:bg-gray-800 py-3"
-              >
-                <div className="flex flex-col gap-1.5">
-                  <div className="flex items-center gap-2">
-                    <span className={data.color}>{data.icon}</span>
-                    <span className="font-medium text-gray-900 dark:text-gray-100">
-                      {data.displayName}
-                    </span>
-                    <Badge
-                      className={`ml-auto ${data.badgeColor} border-0 text-xs`}
-                    >
-                      {data.badge}
-                    </Badge>
-                  </div>
-                  <p className="text-xs text-gray-500 dark:text-gray-400 pl-6">
-                    {data.description}
-                  </p>
-                </div>
-              </SelectItem>
-            );
-          })}
+        <SelectContent>
+          {availableModels.map((key) => (
+            <SelectItem key={key} value={key} className="py-3">
+              {IMAGE_MODELS[key].name} · {IMAGE_MODELS[key].tier}
+            </SelectItem>
+          ))}
         </SelectContent>
       </Select>
-      {selectedProviderData && (
-        <p className="text-xs text-gray-500 dark:text-gray-400">
-          {selectedProviderData.description}
-        </p>
-      )}
-      {selectedProvider && resolveKeySource(selectedProvider) === "openrouter" && (
-        <p className="text-xs text-cyan-600 dark:text-cyan-400">
-          Using OpenRouter key for this provider selection.
-        </p>
+      {selected && (
+        <div className="rounded-lg border bg-muted/30 p-4 space-y-2">
+          <div className="flex flex-wrap items-center gap-2">
+            <Badge variant="outline">{selected.tier}</Badge>
+            <span className="text-xs text-muted-foreground">
+              {source === "openrouter"
+                ? "Via OpenRouter"
+                : "Direct provider API"}
+            </span>
+          </div>
+          <p className="text-sm">{selected.description}</p>
+          <p className="text-xs text-muted-foreground">
+            Direct API rates (USD): {selected.pricing}
+          </p>
+          <p className="text-xs text-muted-foreground">
+            Rates checked {MODEL_CATALOG_CHECKED_AT}; taxes and account fees may
+            apply.{" "}
+            <a
+              href={selected.pricingUrl}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="underline"
+            >
+              Provider pricing
+            </a>
+            {source === "openrouter" && (
+              <>
+                {" "}
+                ·{" "}
+                <a
+                  href={`https://openrouter.ai/${selected.openRouterId}`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="underline"
+                >
+                  OpenRouter pricing
+                </a>
+                . OpenRouter rates may differ; reported request cost appears
+                with the result.
+              </>
+            )}
+          </p>
+        </div>
       )}
     </div>
   );
 }
-
