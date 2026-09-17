@@ -49,3 +49,7 @@ next-env.d.ts
 
 .cursor
 *.md
+!docs/
+!docs/*.md
+!tests/
+!tests/*.test.ts
